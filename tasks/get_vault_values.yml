@@ -1,0 +1,29 @@
+# Built as a task so it can be looped over in a block from an outer call.
+- name: Read key value from Vault
+  community.hashi_vault.vault_read:
+    url: '{{ get_vault_value_addr }}'
+    token: '{{ get_vault_value_token }}'
+    path: '{{ item.path }}'  # Path to the Vault secret
+    ca_cert: '{{ get_vault_value_ca_cert | default(omit) }}'
+  environment:
+    VAULT_SKIP_VERIFY: "true"
+  register: get_vault_values
+  failed_when: get_vault_values.failed or get_vault_values.data is not defined
+  no_log: true  # Prevent vault token and secret exposure in logs
+  tags:
+    - vault
+
+- name: Set return value
+  ansible.builtin.set_fact:
+    get_vault_value_return: '{{ get_vault_values.data.data.data[item.key] | default("") }}'
+  when: not (get_vault_values.failed or get_vault_values.data is not defined)
+  no_log: true  # Prevent secret values exposure in logs
+  tags:
+    - vault
+
+- name: Collect result into dictionary
+  ansible.builtin.set_fact:
+    vault_values: "{{ vault_values | combine({item.name: hostvars['localhost']['get_vault_value_return']}) }}"
+  no_log: true  # Prevent secret values exposure in logs
+  tags:
+    - vault

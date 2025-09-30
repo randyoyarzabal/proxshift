@@ -1,0 +1,17 @@
+---
+galaxy_info:
+  author: ProxShift Team
+  description: Authenticate to OpenShift cluster using kubeadmin credentials from HashiCorp Vault
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: EL
+      versions: ["8", "9"]
+  galaxy_tags:
+    - openshift
+    - kubernetes
+    - authentication
+    - kubeadmin
+    - vault
+
+dependencies: []

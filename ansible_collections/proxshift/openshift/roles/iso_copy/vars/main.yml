@@ -1,0 +1,16 @@
+---
+# Internal variables for iso_copy role
+
+# Generate unique mount point name based on timestamp in current directory
+iso_mount_point: "{{ iso_temp_mount_base }}/{{ ansible_date_time.epoch }}_{{ ansible_hostname }}"
+
+# Extract protocol from destination path
+iso_protocol: "{{ iso_destination_path.split('://')[0] if '://' in iso_destination_path else 'file' }}"
+
+# Extract host and path components
+iso_url_parts: "{{ iso_destination_path.split('://')[1] if '://' in iso_destination_path else iso_destination_path }}"
+iso_remote_host: "{{ iso_url_parts.split('/')[0] if '://' in iso_destination_path else 'localhost' }}"
+iso_remote_path: "{{ '/' + '/'.join(iso_url_parts.split('/')[1:]) if '://' in iso_destination_path else iso_destination_path }}"
+
+# Determine destination filename
+iso_dest_filename: "{{ iso_destination_filename | default(iso_source_file | basename) }}"

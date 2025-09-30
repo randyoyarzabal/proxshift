@@ -1,0 +1,68 @@
+---
+# OpenShift cluster authentication role with clean interface
+
+- name: "Validate required variables"
+  ansible.builtin.assert:
+    that:
+      - cluster_auth_vault is defined
+      - cluster_auth_vault.address is defined
+      - cluster_auth_vault.token is defined
+      - cluster_auth_vault.path is defined
+      - cluster_auth_cluster_name is defined
+    fail_msg: "Required variables missing. Check meta/argument_specs.yml for interface."
+
+- name: "Read cluster credentials from Vault"
+  community.hashi_vault.vault_read:
+    url: "{{ cluster_auth_vault.address }}"
+    token: "{{ cluster_auth_vault.token }}"
+    path: "{{ cluster_auth_vault.path }}/{{ cluster_auth_cluster_name }}"
+    ca_cert: "{{ cluster_auth_vault.ca_cert | default(omit) }}"
+  environment:
+    VAULT_SKIP_VERIFY: "{{ cluster_auth_vault.skip_verify | default('true') }}"
+  register: _cluster_auth_vault_data
+  failed_when: >
+    _cluster_auth_vault_data.failed or 
+    (_cluster_auth_vault_data.data is not defined or 
+     _cluster_auth_vault_data.data.data.data.kubeadmin is not defined)
+  no_log: true  # Prevent vault token and credential exposure in logs
+
+- name: "Set cluster credentials facts"
+  ansible.builtin.set_fact:
+    _cluster_auth_kubeadmin_password: "{{ _cluster_auth_vault_data.data.data.data.kubeadmin }}"
+    _cluster_auth_api_host: "{{ _cluster_auth_vault_data.data.data.data.api }}"
+  no_log: true  # Prevent password exposure in logs
+
+- name: "Authenticate to OpenShift cluster"
+  community.okd.openshift_auth:
+    host: "{{ _cluster_auth_api_host }}"
+    username: "kubeadmin"
+    password: "{{ _cluster_auth_kubeadmin_password }}"
+    validate_certs: "{{ cluster_auth_validate_certs | default(false) }}"
+  register: _cluster_auth_result
+  failed_when: >
+    _cluster_auth_result.failed or 
+    (_cluster_auth_result.openshift_auth.api_key is not defined)
+  no_log: true  # Prevent password and token exposure in logs
+
+- name: "Set authentication return values"
+  ansible.builtin.set_fact:
+    cluster_auth_api_key: "{{ _cluster_auth_result.openshift_auth.api_key }}"
+    cluster_auth_api_host: "{{ _cluster_auth_api_host }}"
+  no_log: true  # Prevent API key exposure in logs
+
+- name: "Get cluster node information (if verbose enabled)"
+  kubernetes.core.k8s_info:
+    host: "{{ _cluster_auth_api_host }}"
+    api_key: "{{ _cluster_auth_result.openshift_auth.api_key }}"
+    validate_certs: "{{ cluster_auth_validate_certs | default(false) }}"
+    api_version: v1
+    kind: Node
+  register: _cluster_auth_nodes
+  when: cluster_auth_verbose | default(false)
+
+- name: "Show cluster nodes"
+  ansible.builtin.debug:
+    msg: "Cluster nodes: {{ _cluster_auth_nodes.resources | map(attribute='metadata.name') | list }}"
+  when: 
+    - cluster_auth_verbose | default(false)
+    - _cluster_auth_nodes is defined

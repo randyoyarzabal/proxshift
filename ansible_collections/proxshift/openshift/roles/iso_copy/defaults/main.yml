@@ -1,0 +1,14 @@
+---
+# Default values for iso_copy role
+
+# Mount timeout in seconds
+iso_mount_timeout: 30
+
+# Cleanup mount points on failure
+iso_cleanup_on_failure: true
+
+# Temporary mount point base directory (in current working directory)
+iso_temp_mount_base: "./.tmpmount"
+
+# File permissions for copied ISO
+iso_file_mode: '0644'

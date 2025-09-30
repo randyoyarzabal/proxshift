@@ -1,0 +1,129 @@
+---
+argument_specs:
+  main:
+    description: "Manage Proxmox VM lifecycle"
+    options:
+      proxmox_vm_api:
+        description: "Proxmox API connection details"
+        type: dict
+        required: true
+        options:
+          host:
+            description: "Proxmox host FQDN or IP"
+            type: str
+            required: true
+          user:
+            description: "Proxmox API user (e.g., api-user@pve)"
+            type: str
+            required: true
+          password:
+            description: "Proxmox API password"
+            type: str
+            required: true
+      proxmox_vm_config:
+        description: "VM configuration specification"
+        type: dict
+        required: true
+        options:
+          node:
+            description: "Proxmox node name"
+            type: str
+            required: true
+          vmid:
+            description: "VM ID (unique integer) - if not provided, next available ID will be used"
+            type: int
+            required: false
+          name:
+            description: "VM name"
+            type: str
+            required: true
+          memory:
+            description: "Memory in MB"
+            type: int
+            required: true
+          cores:
+            description: "Number of CPU cores"
+            type: int
+            default: 2
+          sockets:
+            description: "Number of CPU sockets"
+            type: int
+            default: 1
+          cpu:
+            description: "CPU type"
+            type: str
+            default: "host"
+          boot:
+            description: "Boot order"
+            type: str
+            default: "order=scsi0;ide2"
+          onboot:
+            description: "Start VM on boot"
+            type: bool
+            default: true
+          ostype:
+            description: "OS type"
+            type: str
+            default: "l26"
+          scsihw:
+            description: "SCSI hardware type"
+            type: str
+            default: "virtio-scsi-single"
+          numa:
+            description: "Enable NUMA"
+            type: bool
+            default: false
+          disks:
+            description: "Disk configuration dictionary (key: disk_name, value: disk_options)"
+            type: dict
+            default: {}
+          nics:
+            description: "Network interface configuration dictionary (key: interface_name, value: nic_options)"
+            type: dict
+            default: {}
+          iso_image:
+            description: "ISO image for CD-ROM"
+            type: str
+          qcow2_image:
+            description: "QCOW2 image to import for the primary disk"
+            type: str
+          qcow2_image_path:
+            description: "Path to QCOW2 images on Proxmox host"
+            type: str
+            default: "/var/lib/vz/images"
+          cloud_init:
+            description: "Cloud-init configuration"
+            type: dict
+            default: {}
+            options:
+              user:
+                description: "Cloud-init user"
+                type: str
+              password:
+                description: "Cloud-init password"
+                type: str
+              public_key:
+                description: "SSH public key for cloud-init"
+                type: str
+              nameservers:
+                description: "DNS nameservers"
+                type: list
+              searchdomains:
+                description: "DNS search domains"
+                type: str
+              ipconfig:
+                description: "Network IP configuration"
+                type: str
+      proxmox_vm_state:
+        description: "Desired VM state"
+        type: str
+        choices: [present, absent, started, stopped, restarted]
+        default: present
+      proxmox_vm_force:
+        description: "Force VM recreation if exists"
+        type: bool
+        default: false
+      proxmox_vm_timeout:
+        description: "Operation timeout in seconds"
+        type: int
+        default: 300

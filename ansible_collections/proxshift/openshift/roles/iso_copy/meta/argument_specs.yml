@@ -1,0 +1,40 @@
+---
+argument_specs:
+  main:
+    short_description: Copy ISO files to remote SMB/NFS shares
+    description:
+      - This role dynamically mounts SMB or NFS shares and copies ISO files to them
+      - Supports both SMB and NFS protocols with automatic protocol detection
+      - Handles mounting, copying, and cleanup automatically
+    author: ProxShift
+    options:
+      iso_source_file:
+        type: str
+        required: true
+        description: Full path to the source ISO file to copy
+      iso_destination_path:
+        type: str
+        required: true
+        description: "Remote path (smb://host/share/path or nfs://host/path)"
+      iso_destination_filename:
+        type: str
+        required: false
+        description: Name of the destination file (defaults to source filename)
+      iso_mount_user:
+        type: str
+        required: false
+        description: Username for SMB authentication (required for SMB shares)
+      iso_mount_password:
+        type: str
+        required: false
+        description: Password for SMB authentication (required for SMB shares)
+      iso_mount_timeout:
+        type: int
+        required: false
+        default: 30
+        description: Timeout in seconds for mount operations
+      iso_cleanup_on_failure:
+        type: bool
+        required: false
+        default: true
+        description: Whether to cleanup mount points on failure

@@ -1,0 +1,40 @@
+---
+argument_specs:
+  main:
+    description: "Apply labels to OpenShift cluster nodes"
+    options:
+      node_labeling_cluster:
+        description: "OpenShift cluster connection details"
+        type: dict
+        required: true
+        options:
+          api_host:
+            description: "OpenShift cluster API URL"
+            type: str
+            required: true
+          api_key:
+            description: "Authentication token for OpenShift API"
+            type: str
+            required: true
+          validate_certs:
+            description: "Validate SSL certificates"
+            type: bool
+            default: false
+      node_labeling_labels:
+        description: "Dictionary of labels to apply to nodes"
+        type: dict
+        required: true
+      node_labeling_target_nodes:
+        description: "List of specific node names to label (empty means all matching nodes)"
+        type: list
+        elements: str
+        default: []
+      node_labeling_node_selector:
+        description: "Label selectors to find target nodes"
+        type: list
+        elements: str
+        default: ["node-role.kubernetes.io/worker="]
+      node_labeling_verbose:
+        description: "Enable verbose output"
+        type: bool
+        default: false

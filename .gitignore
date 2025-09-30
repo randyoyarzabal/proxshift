@@ -1,0 +1,40 @@
+.vscode/settings.json
+init-playbook*.json
+tests/*.json
+*.log
+.DS_Store
+.ansible/main-artifact*
+.ansible/ansible-artifact*
+.ansible/ocp_install/*
+.ansible/ocp_install/**
+*.iso
+.vault*
+.ansible
+context/*
+modules/*
+.lock
+# User instance configuration (gitignored)
+config/*.yaml
+config/*.yml
+inventory/
+secrets/
+
+# Collections
+collections/*
+!collections/requirements.yml
+
+# OpenShift Installation Files (contain secrets/credentials)
+ocp_install/
+**/auth/
+**/install-config.yaml
+**/agent-config.yaml
+**/*.bak
+**/kubeconfig
+**/kubeadmin-password
+**/*.iso
+
+# Additional security exclusions
+*.pem
+*.key
+*.crt
+**/rendezvousIP

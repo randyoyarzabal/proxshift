@@ -1,0 +1,42 @@
+---
+argument_specs:
+  main:
+    description: "Manage Advanced Cluster Management (ACM) import operations for OpenShift clusters"
+    options:
+      acm_import_enabled:
+        description: "Enable ACM import functionality"
+        type: bool
+        default: false
+      acm_import_import:
+        description: "Execute the actual import operation"
+        type: bool
+        default: false
+      acm_import_hub_cluster:
+        description: "Name of the ACM hub cluster"
+        type: str
+        required: true
+      acm_import_cluster:
+        description: "Name of the cluster to be imported"
+        type: str
+        required: true
+      acm_import_hub_cluster_api_url:
+        description: "API URL of the hub cluster"
+        type: str
+        required: true
+      acm_import_cluster_api_url:
+        description: "API URL of the cluster to be imported"
+        type: str
+        required: true
+      acm_import_output_dir:
+        description: "Directory where ACM manifests will be generated"
+        type: str
+        required: true
+      acm_import_api_key:
+        description: "API key for cluster authentication (optional - will be set by oc_kubeadmin role calls)"
+        type: str
+        required: false
+        default: ""
+      ocp_install_dir:
+        description: "OpenShift installation directory"
+        type: str
+        required: true

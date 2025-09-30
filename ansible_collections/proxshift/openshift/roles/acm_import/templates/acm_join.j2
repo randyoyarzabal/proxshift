@@ -1,0 +1,36 @@
+apiVersion: cluster.open-cluster-management.io/v1
+kind: ManagedCluster
+metadata:
+  name: {{ acm_import_cluster }}
+  labels:
+    name: {{ acm_import_cluster }}
+    cloud: auto-detect
+    vendor: auto-detect
+    cluster.open-cluster-management.io/clusterset: default
+    apply-gitops: "true"
+  annotations: {}
+spec:
+  hubAcceptsClient: true
+---
+apiVersion: agent.open-cluster-management.io/v1
+kind: KlusterletAddonConfig
+metadata:
+  name: {{ acm_import_cluster }}
+  namespace: {{ acm_import_cluster }}
+spec:
+  clusterName: {{ acm_import_cluster }}
+  clusterNamespace: {{ acm_import_cluster }}
+  clusterLabels:
+    name: {{ acm_import_cluster }}
+    cloud: auto-detect
+    vendor: auto-detect
+    cluster.open-cluster-management.io/clusterset: default
+    apply-gitops: "true"
+  applicationManager:
+    enabled: true
+  policyController:
+    enabled: true
+  searchCollector:
+    enabled: true
+  certPolicyController:
+    enabled: true

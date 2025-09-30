@@ -1,0 +1,30 @@
+---
+argument_specs:
+  main:
+    description: "Manage Proxmox VM lifecycle operations (start/stop) for OpenShift clusters"
+    options:
+      start_stop_vms_state:
+        description: "Desired VM state"
+        type: str
+        choices: ["started", "stopped", "present", "absent", "current"]
+        required: true
+      proxmox_api_user:
+        description: "Proxmox API username"
+        type: str
+        required: true
+      proxmox_api_password:
+        description: "Proxmox API password"
+        type: str
+        required: true
+      cluster_name:
+        description: "Name of the cluster whose VMs to manage"
+        type: str
+        required: true
+      retries:
+        description: "Number of retry attempts for failed operations"
+        type: int
+        default: 10
+      retry_delay:
+        description: "Delay in seconds between retry attempts"
+        type: int
+        default: 30

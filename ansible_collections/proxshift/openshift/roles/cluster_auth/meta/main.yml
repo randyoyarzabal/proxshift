@@ -1,0 +1,16 @@
+---
+galaxy_info:
+  author: Randy Oyarzabal
+  description: Authenticate to OpenShift cluster using HashiCorp Vault credentials
+  license: MIT-0
+  min_ansible_version: "2.15"
+  platforms:
+    - name: EL
+      versions: ["8", "9"]
+  galaxy_tags:
+    - openshift
+    - kubernetes
+    - vault
+    - authentication
+
+dependencies: []

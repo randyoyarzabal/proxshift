@@ -1,0 +1,64 @@
+- name: "Login to the newly created OpenShift cluster: {{ cluster_name }}"
+  ansible.builtin.include_tasks:
+    file: tasks/cluster_login.yml
+  vars:
+    login_cluster_name: "{{ cluster_name }}"
+    login_cluster_api_url: "{{ cluster_api_url }}"
+    login_auth_method: "kubeadmin"
+  tags:
+    - eso
+    - gitops
+
+- name: Install External Secrets Operator
+  kubernetes.core.k8s:
+    host: "{{ cluster_api_url }}"
+    api_key: "{{ cluster_auth_token }}"
+    validate_certs: false
+    api_version: v1
+    definition: "{{ lookup('kubernetes.core.kustomize', dir=gitops_root + '/.init/external-secrets-operator', enable_helm=True) }}"
+    wait: true
+    wait_timeout: 300 # Wait for the operator to be ready
+  tags:
+    - eso
+    - gitops
+
+- name: Wait for CRD established | ESO
+  kubernetes.core.k8s_info:
+    host: "{{ cluster_api_url }}"
+    api_key: "{{ cluster_auth_token }}"
+    validate_certs: false
+    kind: CustomResourceDefinition
+    api_version: apiextensions.k8s.io/v1
+    name: externalsecrets.external-secrets.io
+    wait: true
+    wait_timeout: 300
+    wait_condition:
+      type: Established
+      status: true
+      reason: InitialNamesAccepted
+  tags:
+    - eso
+    - gitops
+
+- name: Install ESO configuration
+  kubernetes.core.helm:
+    host: "{{ cluster_api_url }}"
+    api_key: "{{ cluster_auth_token }}"
+    validate_certs: false
+    name: eso-config
+    chart_ref: "{{ gitops_root + '/.init/external-secrets-configuration' }}"
+    release_namespace: external-secrets-operator
+    create_namespace: false
+    wait: true
+    set_values:
+      - value: vault.url={{ vault_addr }}
+        value_type: string
+      - value: vault.token={{ vault_token }}
+        value_type: string
+      - value: vault.token_dev={{ vault_token }}
+        value_type: string
+      - value: vault.token_infra={{ vault_token }}
+        value_type: string
+  tags:
+    - eso
+    - gitops

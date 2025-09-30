@@ -1,0 +1,12 @@
+---
+# Default values for node_labeling role
+
+# Node selector for finding target nodes
+node_labeling_node_selector:
+  - "node-role.kubernetes.io/worker="
+
+# Target specific nodes (empty list means all matching nodes)
+node_labeling_target_nodes: []
+
+# Verbose output
+node_labeling_verbose: false

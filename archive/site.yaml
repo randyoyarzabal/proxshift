@@ -1,0 +1,131 @@
+---
+# ProxShift Site Orchestrator - OpenShift Cluster Provisioning
+# 
+# This orchestrator playbook calls individual playbooks based on feature flags
+# 
+# Usage Examples:
+#   # Full deployment (all features enabled for homelab)
+#   ansible-playbook site.yaml -e cluster_name=ocp-sno1 -e enable_all=true
+#   
+#   # Blank cluster only (minimal deployment)
+#   ansible-playbook site.yaml -e cluster_name=ocp-sno1
+#   
+#   # Custom feature selection
+#   ansible-playbook site.yaml -e cluster_name=ocp-sno1 -e enable_gitops=true -e enable_acm_import=false
+#   
+#   # Just generate manifests
+#   ansible-playbook site.yaml -e cluster_name=ocp-sno1 -e only_manifests=true
+
+- name: ProxShift Site Orchestrator - Validation and Planning
+  hosts: localhost
+  gather_facts: false
+  vars:
+    # Required variables
+    cluster_name: 'ocp-sno3'  # Default cluster for testing
+    force_install: false
+    
+    # Feature flags with smart defaults
+    enable_all: false              # Set to true to enable everything (homelab mode)
+    only_manifests: false          # Set to true to only generate manifests and stop
+    
+    # Individual feature flags (overridden by enable_all)
+    # 💡 New users: These defaults provide a minimal cluster deployment
+    # 🏠 Homelab users: Use -e enable_all=true or ps.homelab function
+    enable_acm_import: "{{ enable_all | default(false) }}"     # Disabled by default (most users don't need ACM)
+    enable_gitops: "{{ enable_all | default(false) }}"         # Disabled by default (blank cluster for most users)
+    enable_eso: "{{ enable_all | default(false) }}"            # Disabled by default (requires GitOps)
+    enable_gitops_hub: "{{ enable_all | default(false) }}"     # Disabled by default (GitOps feature)
+    enable_storage_labels: "{{ enable_all | default(true) }}"  # Enabled by default (usually harmless)
+    enable_backup_restore: "{{ enable_all | default(false) }}" # Disabled by default (very environment-specific)
+    enable_post_install: "{{ enable_all | default(true) }}"    # Enabled by default (basic post-install tasks)
+
+  tasks:
+    - name: "Validate required variables"
+      ansible.builtin.assert:
+        that:
+          - cluster_name is defined
+          - cluster_name != ""
+        fail_msg: "cluster_name must be specified: -e cluster_name=your-cluster"
+
+    - name: "Set deployment plan information"
+      ansible.builtin.set_fact:
+        deployment_plan_info: |
+          🚀 ProxShift Deployment Plan for {{ cluster_name }}
+          ====================================================
+          Features: {{ 'homelab (all enabled)' if enable_all else 'minimal (selected features only)' }}
+          Mode: {{ 'manifests only' if only_manifests else 'full cluster deployment' }}
+          
+          Execution Order:
+          0. {{ '✓' if not only_manifests else '✗' }} Retrieve Vault Secrets {{ '(skip for manifests-only)' if only_manifests else '' }}
+          1. {{ '✓' if not only_manifests else '✗' }} Provision VMs
+          2. ✓ Generate Manifests & ISO
+          3. {{ '✓' if not only_manifests else '✗' }} Install OpenShift
+          4. {{ '✓' if (enable_acm_import and not only_manifests) else '✗' }} ACM Import
+          5. {{ '✓' if (enable_gitops and not only_manifests) else '✗' }} GitOps/ESO
+          6. {{ '✓' if (enable_post_install and not only_manifests) else '✗' }} Post-Install Tasks
+          7. {{ '✓' if (enable_backup_restore and not only_manifests) else '✗' }} Certificate Backup/Restore
+
+    - name: "Show deployment plan"
+      ansible.builtin.debug:
+        var: deployment_plan_info
+
+# Step 0: Retrieve secrets (skip for manifest-only generation)
+- ansible.builtin.import_playbook: playbooks/00-secrets.yaml
+  when: not only_manifests
+
+# Step 1: Provision VMs (unless only generating manifests)
+- ansible.builtin.import_playbook: playbooks/01-provision-vms.yaml
+  when: not only_manifests
+
+# Step 2: Generate manifests and ISO
+- ansible.builtin.import_playbook: playbooks/02-manifests-iso.yaml
+
+# Stop here if only generating manifests
+- name: ProxShift Manifest Generation Complete
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: "Manifest generation complete - stopping as requested"
+      ansible.builtin.debug:
+        msg: "✅ Manifest generation completed for {{ cluster_name }}. Stopping before cluster installation."
+      when: only_manifests
+
+    - meta: end_play
+      when: only_manifests
+
+# Step 3: Install OpenShift
+- ansible.builtin.import_playbook: playbooks/03-install-ocp.yaml
+
+# Step 4: ACM Import (optional)
+- ansible.builtin.import_playbook: playbooks/04-acm-import.yaml
+  when: enable_acm_import | bool
+
+# Step 5: GitOps/ESO (optional)
+- ansible.builtin.import_playbook: playbooks/05-gitops-eso.yaml
+  when: enable_gitops | bool
+
+# Step 6: Post-install tasks (optional)
+- ansible.builtin.import_playbook: playbooks/06-post-install.yaml
+  when: enable_post_install | bool
+
+# Step 7: Certificate backup/restore (very specific)
+- ansible.builtin.import_playbook: playbooks/07-cert-backup-restore.yaml
+  when: enable_backup_restore | bool
+
+# Final status play
+- name: ProxShift Deployment Complete
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: "Deployment complete"
+      ansible.builtin.debug:
+        msg: |
+          🎉 ProxShift deployment completed for {{ cluster_name }}!
+          
+          Features enabled during this run:
+          - ACM Import: {{ 'Yes' if enable_acm_import else 'No' }}
+          - GitOps/ESO: {{ 'Yes' if enable_gitops else 'No' }}  
+          - Post-Install: {{ 'Yes' if enable_post_install else 'No' }}
+          - Backup/Restore: {{ 'Yes' if enable_backup_restore else 'No' }}
+          
+          Check your cluster at: https://console-openshift-console.apps.{{ cluster_name }}.{{ network_defaults.base_domain | default('homelab.local') }}

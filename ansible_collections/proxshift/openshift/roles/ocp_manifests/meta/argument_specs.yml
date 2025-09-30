@@ -1,0 +1,81 @@
+---
+argument_specs:
+  main:
+    description: "Generate OpenShift installation manifests"
+    options:
+      ocp_manifests_cluster:
+        description: "Cluster configuration"
+        type: dict
+        required: true
+        options:
+          name:
+            description: "Cluster name"
+            type: str
+            required: true
+          version:
+            description: "OpenShift version"
+            type: str
+            default: "4.16.7"
+      ocp_manifests_network:
+        description: "Network configuration"
+        type: dict
+        required: true
+        options:
+          base_domain:
+            description: "Base domain for cluster"
+            type: str
+            required: true
+          subnet:
+            description: "Cluster subnet CIDR"
+            type: str
+            required: true
+          gateway:
+            description: "Gateway IP address"
+            type: str
+            required: true
+          dns_servers:
+            description: "DNS server list"
+            type: list
+            elements: str
+            required: true
+          interface_name:
+            description: "Network interface name"
+            type: str
+            default: "eno1"
+          cluster_cidr:
+            description: "Pod network CIDR"
+            type: str
+            default: "10.128.0.0/14"
+          service_cidr:
+            description: "Service network CIDR"
+            type: str
+            default: "172.30.0.0/16"
+      ocp_manifests_nodes:
+        description: "Node configuration list"
+        type: list
+        elements: dict
+        required: true
+      ocp_manifests_credentials:
+        description: "Cluster credentials"
+        type: dict
+        required: true
+        options:
+          pull_secret:
+            description: "Container registry pull secret"
+            type: str
+            required: true
+          ssh_key:
+            description: "SSH public key for access"
+            type: str
+            required: true
+          cert_bundle:
+            description: "CA certificate bundle"
+            type: str
+      ocp_manifests_output_dir:
+        description: "Output directory for manifests"
+        type: str
+        required: true
+      ocp_manifests_backup:
+        description: "Create backup copies"
+        type: bool
+        default: true

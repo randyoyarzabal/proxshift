@@ -1,0 +1,421 @@
+---
+# ProxShift Clusters Inventory
+# OpenShift clusters managed by ProxShift on Proxmox infrastructure
+
+all:
+  children:
+    clusters:
+      children:
+        # Multi-node cluster (6 nodes: 3 masters + 3 workers)
+        ocp:
+          vars:
+            cluster_type: multi_node
+            base_ip: "192.168.1.10"
+            api_vip: "192.168.1.20"
+            ingress_vip: "192.168.1.21"
+            ocp_version: "4.19.1"
+          hosts:
+            ocp-node1:
+              pve_node: pve1
+              vmid: 401
+              memory: 25600
+              cores: 8
+              sockets: 1
+              cpu: host
+              boot: 'order=scsi0;ide2'
+              iso_image: 'your_nfs:iso/ocp-agent.x86_64.iso'
+              onboot: 1
+              scsihw: virtio-scsi-single
+              numa: false
+              disks:
+                scsi0:
+                  storage: local-lvm
+                  size: 100
+                  backup: false
+                  ssd: true
+                  iothread: true
+              nics:
+                net0:
+                  model: virtio
+                  mac: '02:08:F3:F5:70:3C'
+                  bridge: vmbr0
+                  tag: 42
+                  firewall: 0
+            ocp-node2:
+              pve_node: pve3
+              vmid: 402
+              memory: 25600
+              cores: 8
+              sockets: 1
+              cpu: host
+              boot: 'order=scsi0;ide2'
+              iso_image: 'your_nfs:iso/ocp-agent.x86_64.iso'
+              onboot: 1
+              scsihw: virtio-scsi-single
+              numa: false
+              disks:
+                scsi0:
+                  storage: local-lvm
+                  size: 100
+                  backup: false
+                  ssd: true
+                  iothread: true
+              nics:
+                net0:
+                  model: virtio
+                  mac: 'BC:24:11:44:FF:A1'
+                  bridge: vmbr0
+                  tag: 42
+                  firewall: 0
+            ocp-node3:
+              pve_node: pve3
+              vmid: 403
+              memory: 25600
+              cores: 8
+              sockets: 1
+              cpu: host
+              boot: 'order=scsi0;ide2'
+              iso_image: 'your_nfs:iso/ocp-agent.x86_64.iso'
+              onboot: 1
+              scsihw: virtio-scsi-single
+              numa: false
+              disks:
+                scsi0:
+                  storage: local-lvm
+                  size: 100
+                  backup: false
+                  ssd: true
+                  iothread: true
+              nics:
+                net0:
+                  model: virtio
+                  mac: 'BC:24:11:75:22:45'
+                  bridge: vmbr0
+                  tag: 42
+                  firewall: 0
+            ocp-node4:
+              pve_node: pve4
+              vmid: 404
+              memory: 32768
+              cores: 10
+              sockets: 1
+              cpu: host
+              boot: 'order=scsi0;ide2'
+              iso_image: 'your_nfs:iso/ocp-agent.x86_64.iso'
+              onboot: 1
+              scsihw: virtio-scsi-single
+              numa: false
+              wwn: '0x5000c50000000004'
+              disks:
+                scsi0:
+                  storage: local-lvm
+                  size: 100
+                  backup: false
+                  ssd: true
+                  iothread: true
+                  wwn: '0x5000c50000000004'
+                scsi1:
+                  storage: local-lvm
+                  size: 150
+                  backup: false
+                  ssd: true
+                  iothread: true
+              nics:
+                net0:
+                  model: virtio
+                  mac: 'BC:24:11:52:94:F4'
+                  bridge: vmbr0
+                  tag: 42
+                  firewall: 0
+            ocp-node5:
+              pve_node: pve4
+              vmid: 405
+              memory: 32768
+              cores: 10
+              sockets: 1
+              cpu: host
+              boot: 'order=scsi0;ide2'
+              iso_image: 'your_nfs:iso/ocp-agent.x86_64.iso'
+              onboot: 1
+              scsihw: virtio-scsi-single
+              numa: false
+              wwn: '0x5000c50000000005'
+              disks:
+                scsi0:
+                  storage: local-lvm
+                  size: 100
+                  backup: false
+                  ssd: true
+                  iothread: true
+                  wwn: '0x5000c50000000005'
+                scsi1:
+                  storage: local-lvm
+                  size: 150
+                  backup: false
+                  ssd: true
+                  iothread: true
+              nics:
+                net0:
+                  model: virtio
+                  mac: 'BC:24:11:48:50:9B'
+                  bridge: vmbr0
+                  tag: 42
+                  firewall: 0
+            ocp-node6:
+              pve_node: pve4
+              vmid: 406
+              memory: 32768
+              cores: 10
+              sockets: 1
+              cpu: host
+              boot: 'order=scsi0;ide2'
+              iso_image: 'your_nfs:iso/ocp-agent.x86_64.iso'
+              onboot: 1
+              scsihw: virtio-scsi-single
+              numa: false
+              wwn: '0x5000c50000000007'
+              disks:
+                scsi0:
+                  storage: local-lvm
+                  size: 100
+                  backup: false
+                  ssd: true
+                  iothread: true
+                  wwn: '0x5000c50000000007'
+                scsi1:
+                  storage: local-lvm
+                  size: 150
+                  backup: false
+                  ssd: true
+                  iothread: true
+              nics:
+                net0:
+                  model: virtio
+                  mac: 'BC:24:11:C4:54:A6'
+                  bridge: vmbr0
+                  tag: 42
+                  firewall: 0
+
+        # Multi-node compact cluster (4 nodes: 3 masters + 1 worker)
+        ocp3:
+          vars:
+            cluster_type: multi_node
+            base_ip: "192.168.1.30"
+            api_vip: "192.168.1.40"
+            ingress_vip: "192.168.1.41"
+            ocp_version: "4.19.1"
+          hosts:
+            ocp3-node1:
+              pve_node: pve1
+              vmid: 501
+              memory: 24578
+              cores: 8
+              sockets: 1
+              cpu: host
+              boot: 'order=scsi0;ide2'
+              iso_image: 'your_nfs:iso/ocp3-agent.x86_64.iso'
+              onboot: 1
+              scsihw: virtio-scsi-single
+              numa: false
+              wwn: '0x5000c5000000000d'
+              disks:
+                scsi0:
+                  storage: local-lvm
+                  size: 120
+                  backup: false
+                  ssd: true
+                  iothread: true
+                  wwn: '0x5000c5000000000d'
+              nics:
+                net0:
+                  model: virtio
+                  mac: 'BC:24:11:F4:6B:CB'
+                  bridge: vmbr0
+                  tag: 42
+                  firewall: 0
+            ocp3-node2:
+              pve_node: pve3
+              vmid: 502
+              memory: 24578
+              cores: 8
+              sockets: 1
+              cpu: host
+              boot: 'order=scsi0;ide2'
+              iso_image: 'your_nfs:iso/ocp3-agent.x86_64.iso'
+              onboot: 1
+              scsihw: virtio-scsi-single
+              numa: false
+              wwn: '0x5000c5000000000f'
+              disks:
+                scsi0:
+                  storage: local-lvm
+                  size: 120
+                  backup: false
+                  ssd: true
+                  iothread: true
+                  wwn: '0x5000c5000000000f'
+              nics:
+                net0:
+                  model: virtio
+                  mac: 'BC:24:11:DA:A2:95'
+                  bridge: vmbr0
+                  tag: 42
+                  firewall: 0
+            ocp3-node3:
+              pve_node: pve3
+              vmid: 503
+              memory: 24578
+              cores: 8
+              sockets: 1
+              cpu: host
+              boot: 'order=scsi0;ide2'
+              iso_image: 'your_nfs:iso/ocp3-agent.x86_64.iso'
+              onboot: 1
+              scsihw: virtio-scsi-single
+              numa: false
+              wwn: '0x5000c50000000011'
+              disks:
+                scsi0:
+                  storage: local-lvm
+                  size: 120
+                  backup: false
+                  ssd: true
+                  iothread: true
+                  wwn: '0x5000c50000000011'
+              nics:
+                net0:
+                  model: virtio
+                  mac: 'BC:24:11:08:75:6C'
+                  bridge: vmbr0
+                  tag: 42
+                  firewall: 0
+            ocp-node6:
+              pve_node: pve4
+              vmid: 406
+              memory: 32768
+              cores: 12
+              sockets: 1
+              cpu: host
+              boot: 'order=scsi0;ide2'
+              iso_image: 'your_nfs:iso/ocp3-agent.x86_64.iso'
+              onboot: 1
+              scsihw: virtio-scsi-single
+              numa: false
+              wwn: '0x5000c50000000007'
+              disks:
+                scsi0:
+                  storage: local-lvm
+                  size: 100
+                  backup: false
+                  ssd: true
+                  iothread: true
+                  wwn: '0x5000c50000000007'
+              nics:
+                net0:
+                  model: virtio
+                  mac: 'BC:24:11:C4:54:A6'
+                  bridge: vmbr0
+                  tag: 42
+                  firewall: 0
+
+        # Single Node OpenShift clusters
+        ocp-sno1:
+          vars:
+            cluster_type: sno
+            base_ip: "192.168.1.50"
+            ocp_version: "4.19.1"
+          hosts:
+            master-sno1:
+              pve_node: pve2
+              vmid: 301
+              memory: 40960
+              cores: 12
+              sockets: 1
+              cpu: host
+              boot: 'order=scsi0;ide2'
+              iso_image: 'your_nfs:iso/ocp-sno1-agent.x86_64.iso'
+              onboot: 1
+              scsihw: virtio-scsi-single
+              numa: false
+              disks:
+                scsi0:
+                  storage: local-lvm
+                  size: 120
+                  backup: false
+                  ssd: true
+                  iothread: true
+              nics:
+                net0:
+                  model: virtio
+                  mac: 'BC:24:11:42:BE:F4'
+                  bridge: vmbr0
+                  tag: 42
+                  firewall: 0
+
+        ocp-sno2:
+          vars:
+            cluster_type: sno
+            base_ip: "192.168.1.51"
+            ocp_version: "4.19.1"
+          hosts:
+            master-sno2:
+              pve_node: pve3
+              vmid: 302
+              memory: 32768
+              cores: 8
+              sockets: 1
+              cpu: host
+              boot: 'order=scsi0;ide2'
+              iso_image: 'your_nfs:iso/ocp-sno2-agent.x86_64.iso'
+              onboot: 1
+              scsihw: virtio-scsi-single
+              numa: false
+              disks:
+                scsi0:
+                  storage: local-lvm
+                  size: 100
+                  backup: false
+                  ssd: true
+                  iothread: true
+              nics:
+                net0:
+                  model: virtio
+                  mac: 'BC:24:11:CA:D0:FC'
+                  bridge: vmbr0
+                  tag: 42
+                  firewall: 0
+
+        ocp-sno3:
+          vars:
+            cluster_type: sno
+            base_ip: "192.168.1.52"
+            ocp_version: "4.19.1"
+          hosts:
+            master-sno3:
+              pve_node: pve4
+              vmid: 303
+              memory: 32768
+              cores: 12
+              sockets: 1
+              cpu: host
+              boot: 'order=scsi0;ide2'
+              iso_image: 'your_nfs:iso/ocp-sno3-agent.x86_64.iso'
+              onboot: 1
+              scsihw: virtio-scsi-single
+              numa: false
+              wwn: '0x5000c50055f2f437'
+              disks:
+                scsi0:
+                  storage: local-lvm
+                  size: 100
+                  backup: false
+                  ssd: true
+                  iothread: true
+                  wwn: '0x5000c50055f2f437'
+              nics:
+                net0:
+                  model: virtio
+                  mac: 'BC:24:11:B2:CB:02'
+                  bridge: vmbr0
+                  tag: 42
+                  firewall: 0

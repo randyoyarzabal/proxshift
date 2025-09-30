@@ -1,0 +1,29 @@
+---
+argument_specs:
+  main:
+    description: "Authenticate to OpenShift cluster using kubeadmin credentials"
+    options:
+      oc_kubeadmin_cluster_name:
+        description: "Name of the OpenShift cluster to authenticate to"
+        type: str
+        required: true
+      vault_addr:
+        description: "HashiCorp Vault server URL"
+        type: str
+        required: true
+      vault_token:
+        description: "HashiCorp Vault authentication token"
+        type: str
+        required: true
+      vault_path:
+        description: "Vault path where cluster credentials are stored"
+        type: str
+        required: true
+      vault_ca_cert:
+        description: "CA certificate for Vault TLS verification"
+        type: str
+        required: false
+      verbose_enabled:
+        description: "Enable verbose output and node listing"
+        type: bool
+        default: false

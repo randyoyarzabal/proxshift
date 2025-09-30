@@ -1,0 +1,4 @@
+---
+# Default values for hashicorp_vault role
+
+hashicorp_vault_output_var: "vault_values"

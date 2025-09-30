@@ -1,0 +1,25 @@
+- name: "Start/stop Proxmox VMs for the cluster {{ start_stop_vms_state }}"
+  community.proxmox.proxmox_kvm:
+    api_host: '{{ hostvars[item].pve_node }}'
+    api_user: '{{ proxmox_api_user }}'
+    api_password: '{{ proxmox_api_password }}'
+    vmid: '{{ hostvars[item].vmid }}'
+    state: "{{ start_stop_vms_state }}"
+    force: true
+  register: result
+  until: not result.failed
+  retries: 10
+  delay: 30
+  loop: "{{ groups[cluster_name] }}"
+  loop_control:
+    label: "{{ hostvars[item].pve_node }}:{{ hostvars[item].vmid }}-{{ item }}"
+  when:
+    - groups[cluster_name] is defined
+    - hostvars[item].vmid is defined
+  ignore_errors: true
+  no_log: true  # Prevent API password exposure in logs
+  tags:
+    - vm_start
+    - vm_stop
+    - vm_create
+    - vm_delete

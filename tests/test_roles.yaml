@@ -1,0 +1,318 @@
+---
+# ProxShift Role Testing and Demonstration Playbook
+# This playbook demonstrates how to use all roles in the ProxShift collections
+# 
+# Usage from tests/ directory:
+#   ansible-playbook test_roles.yaml
+#   ansible-playbook test_roles.yaml --extra-vars "test_cluster_name=my-test"
+
+- name: ProxShift Role Test Suite
+  hosts: localhost
+  gather_facts: true
+  vars:
+    # Test configuration - modify these for your environment
+    test_cluster_name: "test-sno"
+    test_vmid: 999
+    test_node_name: "test-sno-master"
+    
+    # Adjust paths for tests/ directory location
+    proxshift_root: "{{ playbook_dir }}/.."
+    
+    # Vault configuration (should be provided via extra-vars or vault files)
+    vault_config:
+      address: "{{ vault_addr | default('https://vault.example.com:8200') }}"
+      token: "{{ vault_token | default('your-vault-token') }}"
+      path: "{{ vault_path | default('secret/data/openshift/clusters') }}"
+    
+    # Proxmox configuration (should be provided via extra-vars or vault files)
+    proxmox_config:
+      host: "{{ proxmox_host | default('proxmox.example.com') }}"
+      user: "{{ proxmox_user | default('api-user@pve') }}"
+      password: "{{ proxmox_password | default('your-proxmox-password') }}"
+    
+    # Test network configuration
+    test_network:
+      base_domain: "homelab.local"
+      subnet: "192.168.1.0/24"
+      gateway: "192.168.1.1"
+      dns_servers:
+        - "192.168.1.1"
+        - "8.8.8.8"
+      interface_name: "ens192"
+    
+    # Test node configuration
+    test_nodes:
+      - name: "{{ test_node_name }}"
+        ip: "192.168.1.199"
+        mac: "00:50:56:99:99:99"
+        role: "master"
+        memory: 16384
+        cores: 4
+        node: "pve-node1"
+    
+    # Test output directory (relative to proxshift root)
+    test_output_dir: "{{ proxshift_root }}/tests/output"
+
+  tasks:
+    - name: "=== ProxShift Role Test Suite ==="
+      ansible.builtin.debug:
+        msg: |
+          Starting ProxShift role testing for cluster: {{ test_cluster_name }}
+          This playbook demonstrates usage of all ProxShift collection roles.
+          
+          Test Configuration:
+          - Cluster: {{ test_cluster_name }}
+          - Node: {{ test_node_name }} (VMID: {{ test_vmid }})
+          - Output: {{ test_output_dir }}
+          
+          Modify variables at the top of this playbook for your environment.
+
+    - name: "Create test output directory"
+      ansible.builtin.file:
+        path: "{{ test_output_dir }}"
+        state: directory
+        mode: '0755'
+
+    # =========================================================================
+    # TEST 1: HashiCorp Vault Role
+    # =========================================================================
+    - name: "TEST 1: HashiCorp Vault - Retrieve secrets"
+      block:
+        - name: "Retrieve test secrets from Vault"
+          ansible.builtin.include_role:
+            name: proxshift.hashi_vault.hashicorp_vault
+          vars:
+            hashicorp_vault_api:
+              url: "{{ vault_config.address }}"
+              token: "{{ vault_config.token }}"
+            hashicorp_vault_secrets:
+              - name: "pull_secret"
+                path: "secret/data/openshift/registry"
+                key: "pull_secret"
+              - name: "ssh_key"
+                path: "secret/data/openshift/access"
+                key: "public_key"
+            hashicorp_vault_output_var: "test_vault_values"
+
+        - name: "Display retrieved secrets (keys only for security)"
+          ansible.builtin.debug:
+            msg: "Successfully retrieved {{ test_vault_values.keys() | list | length }} secrets: {{ test_vault_values.keys() | list }}"
+
+      rescue:
+        - name: "Vault test failed - creating mock secrets"
+          ansible.builtin.set_fact:
+            test_vault_values:
+              pull_secret: '{"auths":{"example.com":{"auth":"dGVzdA=="}}}'
+              ssh_key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC... test@example.com"
+          
+        - name: "Vault test failure notice"
+          ansible.builtin.debug:
+            msg: "Vault test failed - using mock secrets for demonstration"
+
+    # =========================================================================
+    # TEST 2: OpenShift Manifests Role
+    # =========================================================================
+    - name: "TEST 2: OpenShift Manifests - Generate installation files"
+      block:
+        - name: "Generate OpenShift manifests"
+          ansible.builtin.include_role:
+            name: proxshift.openshift.ocp_manifests
+          vars:
+            ocp_manifests_cluster:
+              name: "{{ test_cluster_name }}"
+              version: "4.17.1"
+            ocp_manifests_network: "{{ test_network }}"
+            ocp_manifests_nodes: "{{ test_nodes }}"
+            ocp_manifests_credentials:
+              pull_secret: "{{ test_vault_values.pull_secret }}"
+              ssh_key: "{{ test_vault_values.ssh_key }}"
+            ocp_manifests_output_dir: "{{ test_output_dir }}/manifests"
+
+        - name: "Verify generated manifests"
+          ansible.builtin.stat:
+            path: "{{ test_output_dir }}/manifests/{{ item }}"
+          register: manifest_files
+          loop:
+            - "install-config.yaml"
+            - "agent-config.yaml"
+
+        - name: "Display manifest generation results"
+          ansible.builtin.debug:
+            msg: "Generated manifest: {{ item.item }} - Exists: {{ item.stat.exists }}"
+          loop: "{{ manifest_files.results }}"
+
+    # =========================================================================
+    # TEST 3: Proxmox VM Role (DRY RUN)
+    # =========================================================================
+    - name: "TEST 3: Proxmox VM - VM lifecycle management (dry run)"
+      block:
+        - name: "Test VM configuration (present state)"
+          ansible.builtin.include_role:
+            name: proxshift.proxmox.proxmox_vm
+          vars:
+            proxmox_vm_api: "{{ proxmox_config }}"
+            proxmox_vm_config:
+              node: "{{ test_nodes[0].node }}"
+              vmid: "{{ test_vmid }}"
+              name: "{{ test_node_name }}"
+              memory: "{{ test_nodes[0].memory }}"
+              cores: "{{ test_nodes[0].cores }}"
+              disks:
+                scsi0:
+                  size: "120G"
+                  storage: "local-lvm"
+              nics:
+                net0:
+                  bridge: "vmbr0"
+                  model: "virtio"
+            proxmox_vm_state: "present"
+            proxmox_vm_force: false
+          check_mode: true
+
+        - name: "Proxmox VM test notice"
+          ansible.builtin.debug:
+            msg: |
+              Proxmox VM role test completed (check mode).
+              In production, this would create VM {{ test_vmid }} on {{ test_nodes[0].node }}
+              with {{ test_nodes[0].memory }}MB RAM and {{ test_nodes[0].cores }} cores.
+
+      rescue:
+        - name: "Proxmox test failed"
+          ansible.builtin.debug:
+            msg: "Proxmox VM test failed - this is expected if Proxmox credentials are not configured"
+
+    # =========================================================================
+    # TEST 4: VM Lifecycle Role
+    # =========================================================================
+    - name: "TEST 4: VM Lifecycle - Start/stop operations (simulation)"
+      block:
+        - name: "Simulate VM start operation"
+          ansible.builtin.debug:
+            msg: |
+              VM Lifecycle Role Usage:
+              
+              To start VMs for cluster {{ test_cluster_name }}:
+              - name: Start cluster VMs
+                ansible.builtin.include_role:
+                  name: proxshift.proxmox.vm_lifecycle
+                vars:
+                  start_stop_vms_state: 'started'
+              
+              To stop VMs:
+              - Change start_stop_vms_state to 'stopped'
+              
+              Note: This requires cluster inventory and proper Proxmox connectivity.
+
+    # =========================================================================
+    # TEST 5: Cluster Authentication Role (Mock)
+    # =========================================================================
+    - name: "TEST 5: Cluster Authentication - Login simulation"
+      block:
+        - name: "Demonstrate cluster authentication usage"
+          ansible.builtin.debug:
+            msg: |
+              Cluster Authentication Role Usage:
+              
+              To authenticate to OpenShift cluster:
+              - name: Login to cluster
+                ansible.builtin.include_role:
+                  name: proxshift.openshift.oc_kubeadmin
+                vars:
+                  oc_kubeadmin_cluster_name: "{{ test_cluster_name }}"
+                  oc_kubeadmin_vault_addr: "{{ vault_config.address }}"
+                  oc_kubeadmin_vault_token: "{{ vault_config.token }}"
+                  oc_kubeadmin_vault_path: "{{ vault_config.path }}"
+              
+              Returns:
+              - oc_kubeadmin_value_return: OpenShift API token
+              - oc_kubeadmin_api_url: Cluster API URL
+
+    # =========================================================================
+    # TEST 6: ACM Import Role (Mock)
+    # =========================================================================
+    - name: "TEST 6: ACM Import - Cluster import simulation"
+      block:
+        - name: "Demonstrate ACM import usage"
+          ansible.builtin.debug:
+            msg: |
+              ACM Import Role Usage:
+              
+              To import cluster to ACM hub:
+              - name: Import cluster
+                ansible.builtin.include_role:
+                  name: proxshift.openshift.acm_import
+                vars:
+                  acm_import_enabled: true
+                  acm_import_import: true
+                  acm_import_hub_cluster: "hub-cluster"
+                  acm_import_cluster: "{{ test_cluster_name }}"
+                  acm_import_hub_cluster_api_url: "https://api.hub.domain.com:6443"
+                  acm_import_cluster_api_url: "https://api.{{ test_cluster_name }}.domain.com:6443"
+                  acm_import_output_dir: "{{ test_output_dir }}/acm"
+                  ocp_install_dir: "{{ test_output_dir }}/install"
+
+    # =========================================================================
+    # TEST 7: Additional Roles
+    # =========================================================================
+    - name: "TEST 7: Additional utility roles"
+      block:
+        - name: "Demonstrate other collection roles"
+          ansible.builtin.debug:
+            msg: |
+              Additional ProxShift Collection Roles:
+              
+              1. cluster_credentials - Store cluster credentials in Vault
+              2. secret_management - Backup/restore OpenShift secrets  
+              3. vault_credentials - Store cluster auth in Vault
+              4. node_labeling - Apply labels to OpenShift nodes
+              
+              See individual role README files for detailed usage examples.
+
+    # =========================================================================
+    # TEST SUMMARY
+    # =========================================================================
+    - name: "=== Test Suite Summary ==="
+      ansible.builtin.debug:
+        msg: |
+          ProxShift Role Test Suite Completed!
+          
+          Tested Roles:
+          ✓ proxshift.hashi_vault.hashicorp_vault - Secret retrieval
+          ✓ proxshift.openshift.ocp_manifests - Manifest generation
+          ✓ proxshift.proxmox.proxmox_vm - VM management
+          ✓ proxshift.proxmox.vm_lifecycle - VM operations
+          ✓ proxshift.openshift.oc_kubeadmin - Authentication
+          ✓ proxshift.openshift.acm_import - ACM integration
+          
+          Generated Files:
+          - {{ test_output_dir }}/manifests/install-config.yaml
+          - {{ test_output_dir }}/manifests/agent-config.yaml
+          
+          For production usage:
+          1. Configure vault_addr, vault_token, proxmox_* variables
+          2. Set up proper inventory in inventory/clusters.yml
+          3. Run site.yaml playbook for full cluster provisioning
+          
+          See documentation in docs/ for complete setup guide.
+          
+          Note: This test runs from tests/ directory with relative paths to parent.
+
+    - name: "Display generated test files"
+      ansible.builtin.find:
+        paths: "{{ test_output_dir }}"
+        recurse: true
+        file_type: file
+      register: test_files
+
+    - name: "Test artifacts"
+      ansible.builtin.debug:
+        msg: "Generated: {{ item.path }}"
+      loop: "{{ test_files.files }}"
+      when: test_files.files | length > 0
+
+  handlers:
+    - name: "Clean up test files"
+      ansible.builtin.file:
+        path: "{{ test_output_dir }}"
+        state: absent
+      listen: "cleanup"

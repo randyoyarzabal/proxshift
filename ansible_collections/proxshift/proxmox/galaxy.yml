@@ -1,0 +1,22 @@
+namespace: proxshift
+name: proxmox
+version: 1.0.0
+readme: README.md
+authors:
+  - Randy Oyarzabal <randyoyarzabal@gmail.com>
+description: ProxShift Proxmox VE infrastructure management collection
+license:
+  - MIT
+license_file: ''
+tags:
+  - proxmox
+  - virtualization
+  - infrastructure
+  - vm
+  - automation
+dependencies: {}
+repository: https://github.com/randyoyarzabal/proxshift
+documentation: https://github.com/randyoyarzabal/proxshift/tree/main/docs
+homepage: https://github.com/randyoyarzabal/proxshift
+issues: https://github.com/randyoyarzabal/proxshift/issues
+build_ignore: []

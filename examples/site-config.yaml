@@ -1,0 +1,63 @@
+# 🏠 ProxShift Site Configuration Template
+# Copy this to 'config/site-config.yaml' and customize for your environment
+# This file contains your environment-specific settings for ProxShift
+
+# HashiCorp Vault connection file
+vault_path: 'config/vault-credentials.yml'
+
+# OpenShift installer binary location
+ocp_installer_path: '/usr/local/bin'  # Default: standard PATH location
+
+# NFS/Storage path for ISO boot images
+iso_boot_path: '/mnt/nfs/iso'         # Update to your NFS mount point
+
+# Hub cluster for ACM (Advanced Cluster Management)
+hub_cluster: ocp-sno1                 # Change to your hub cluster name
+hub_cluster_api_url: "https://api.{{ hub_cluster }}.{{ network_defaults.base_domain }}:6443"
+
+# ProxShift generated paths (usually don't need to change)
+ocp_iso_image: '{{ ocp_install_dir }}/agent.x86_64.iso'
+cluster_marker: '{{ ocp_install_dir }}/.cluster_provisioned'
+gitops_root: "{{ ansible_user_dir }}/gitops"  # Update if using GitOps
+
+# Backup configuration
+backup_secrets:
+  - name: secret-your-ca-tls
+    namespace: cert-manager
+  - name: secret-your-domain-tls
+    namespace: ingress
+
+backup_dir: "{{ gitops_root }}/backups"
+
+# 📋 Valid cluster names (matches your inventory/clusters.yml)
+cluster_list:
+  - ocp          # Standard multi-node cluster
+  - ocp3         # Compact cluster  
+  - ocp-sno1     # Single Node OpenShift
+  - ocp-sno2     # Single Node OpenShift
+  - ocp-sno3     # Single Node OpenShift
+
+# 🔐 HashiCorp Vault secrets to retrieve
+vault_items:
+  - name: pull-secret
+    path: 'secrets/data/openshift/pullsecret'
+    key: 'secret'
+  - name: ssh-key
+    path: 'secrets/data/your-ssh-pubkey'
+    key: 'key'
+  - name: cert-bundle
+    path: 'secrets/data/your-ca-bundle'
+    key: 'ca-bundle.crt'
+
+# 🌐 Network defaults for your homelab
+# ⚠️ CUSTOMIZE THESE FOR YOUR ENVIRONMENT
+network_defaults:
+  base_domain: "homelab.local"        # Your homelab domain
+  subnet: "192.168.1.0/24"            # Your subnet
+  gateway: "192.168.1.1"              # Your gateway
+  dns_servers:
+    - "192.168.1.10"                  # Your DNS servers
+    - "192.168.1.11"
+  interface_name: "eno1"              # Network interface name
+  cluster_cidr: "10.128.0.0/14"      # OpenShift pod network (usually fine)
+  service_cidr: "172.30.0.0/16"      # OpenShift service network (usually fine)

@@ -1,0 +1,17 @@
+---
+galaxy_info:
+  author: ProxShift Team
+  description: Manage Proxmox VM lifecycle operations (start/stop) for OpenShift clusters
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: EL
+      versions: ["8", "9"]
+  galaxy_tags:
+    - proxmox
+    - virtualization
+    - vm
+    - lifecycle
+    - power-management
+
+dependencies: []

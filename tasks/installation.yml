@@ -1,0 +1,27 @@
+---
+# OpenShift installation orchestration
+# This task file orchestrates the complete installation process using modular tasks
+
+- name: "Wait for OpenShift installation completion; this may take a while (45+ minutes)"
+  ansible.builtin.include_tasks:
+    file: tasks/wait_for_installation.yml
+  tags:
+    - install
+
+- name: "Store cluster credentials in Vault"
+  ansible.builtin.include_tasks:
+    file: tasks/store_credentials.yml
+  tags:
+    - vault
+
+- name: "Login to the newly provisioned cluster"
+  ansible.builtin.include_tasks:
+    file: tasks/cluster_login.yml
+  vars:
+    login_cluster_name: "{{ cluster_name }}"
+    login_cluster_api_url: "{{ cluster_api_url }}"
+    login_auth_method: "kubeadmin"
+  tags:
+    - cluster_login
+    - eso
+    - gitops

@@ -1,0 +1,17 @@
+---
+galaxy_info:
+  author: Randy Oyarzabal
+  description: Backup and restore OpenShift secrets
+  license: MIT-0
+  min_ansible_version: "2.15"
+  platforms:
+    - name: EL
+      versions: ["8", "9"]
+  galaxy_tags:
+    - openshift
+    - kubernetes
+    - secrets
+    - backup
+    - restore
+
+dependencies: []

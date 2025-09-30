@@ -1,0 +1,22 @@
+---
+# Default values for proxmox_vm role
+
+# VM state management
+proxmox_vm_state: present
+proxmox_vm_force: false
+proxmox_vm_timeout: 300
+
+# VM defaults
+proxmox_vm_defaults:
+  cores: 2
+  sockets: 1
+  cpu: "host"
+  boot: "order=scsi0;ide2"
+  onboot: true
+  ostype: "l26"  # Linux 2.6/3.x/4.x (KVM)
+  scsihw: "virtio-scsi-single"
+  numa: false
+
+# QCOW2 import settings
+proxmox_vm_qcow2_temp_storage: "local-lvm"
+proxmox_vm_qcow2_temp_size: 2

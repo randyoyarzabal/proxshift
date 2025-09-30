@@ -1,0 +1,49 @@
+---
+argument_specs:
+  main:
+    description: "Backup and restore OpenShift secrets"
+    options:
+      secret_management_cluster:
+        description: "OpenShift cluster connection details"
+        type: dict
+        required: true
+        options:
+          api_host:
+            description: "OpenShift cluster API URL"
+            type: str
+            required: true
+          api_key:
+            description: "Authentication token for OpenShift API"
+            type: str
+            required: true
+          validate_certs:
+            description: "Validate SSL certificates"
+            type: bool
+            default: false
+      secret_management_backup_dir:
+        description: "Directory to store/restore secret backup files"
+        type: str
+        required: true
+      secret_management_secrets:
+        description: "List of secrets to backup/restore"
+        type: list
+        required: true
+        elements: dict
+        options:
+          name:
+            description: "Secret name"
+            type: str
+            required: true
+          namespace:
+            description: "Secret namespace"
+            type: str
+            required: true
+      secret_management_operation:
+        description: "Operation to perform"
+        type: str
+        choices: ["backup", "restore", "both"]
+        default: "backup"
+      secret_management_verbose:
+        description: "Enable verbose output"
+        type: bool
+        default: false

@@ -1,0 +1,17 @@
+---
+galaxy_info:
+  role_name: hashicorp_vault
+  description: "Retrieve secrets from HashiCorp Vault with clean interface"
+  author: "ProxShift Team"
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: EL
+      versions: ["8", "9"]
+  galaxy_tags:
+    - vault
+    - secrets
+    - security
+    - hashicorp
+
+dependencies: []

@@ -1,0 +1,39 @@
+# GitHub Pages configuration for ProxShift documentation
+title: ProxShift Documentation
+description: OpenShift clusters on Proxmox made simple
+
+# Theme - Using midnight theme to differentiate from Chief project
+remote_theme: pages-themes/midnight@v0.2.0
+plugins:
+  - jekyll-remote-theme
+  - jekyll-feed
+  - jekyll-sitemap
+
+# Navigation
+header_pages:
+  - setup.md
+  - environment.md
+  - template-generation.md
+  - architecture.md
+  - welcome.md
+
+# Markdown settings
+markdown: kramdown
+highlighter: rouge
+
+# Code copy widget configuration
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    css_class: 'highlight'
+    span:
+      line_numbers: false
+
+# Custom styling for code blocks with copy functionality
+sass:
+  style: compressed
+
+# Exclude from processing
+exclude:
+  - README.md

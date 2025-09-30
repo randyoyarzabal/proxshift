@@ -1,0 +1,145 @@
+<!-- Custom head content for ProxShift documentation -->
+<style>
+/* Custom styling for midnight theme with code copy widgets */
+.highlight {
+  position: relative;
+  margin-bottom: 1rem;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.highlight:hover .copy-btn {
+  opacity: 1;
+}
+
+.copy-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  color: #fff;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.copy-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.copy-btn.copied {
+  background: rgba(46, 160, 67, 0.8);
+  border-color: rgba(46, 160, 67, 1);
+}
+
+/* Enhanced midnight theme styling */
+body {
+  background: linear-gradient(135deg, #0f1419 0%, #1a1e23 100%);
+}
+
+.highlight pre {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 16px;
+  margin: 0;
+}
+
+/* ProxShift branding accent */
+h1, h2 {
+  border-bottom: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+a {
+  color: #ffd700;
+}
+
+a:hover {
+  color: #ffed4e;
+}
+
+/* Table styling */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+}
+
+table th, table td {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 8px 12px;
+  text-align: left;
+}
+
+table th {
+  background: rgba(255, 215, 0, 0.1);
+  font-weight: bold;
+}
+</style>
+
+<script>
+// Code copy functionality
+document.addEventListener('DOMContentLoaded', function() {
+  // Add copy buttons to all code blocks
+  const codeBlocks = document.querySelectorAll('.highlight pre code, .highlight pre');
+  
+  codeBlocks.forEach(function(block) {
+    const button = document.createElement('button');
+    button.className = 'copy-btn';
+    button.textContent = 'Copy';
+    
+    button.addEventListener('click', function() {
+      const code = block.textContent;
+      
+      // Use modern clipboard API
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(code).then(function() {
+          showCopied(button);
+        }).catch(function() {
+          fallbackCopy(code, button);
+        });
+      } else {
+        fallbackCopy(code, button);
+      }
+    });
+    
+    // Insert button into the highlight container
+    const container = block.closest('.highlight');
+    if (container) {
+      container.appendChild(button);
+    }
+  });
+  
+  function showCopied(button) {
+    button.textContent = 'Copied!';
+    button.classList.add('copied');
+    setTimeout(function() {
+      button.textContent = 'Copy';
+      button.classList.remove('copied');
+    }, 2000);
+  }
+  
+  function fallbackCopy(text, button) {
+    // Fallback for older browsers
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.opacity = '0';
+    document.body.appendChild(textArea);
+    textArea.select();
+    
+    try {
+      document.execCommand('copy');
+      showCopied(button);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+    }
+    
+    document.body.removeChild(textArea);
+  }
+});
+</script>

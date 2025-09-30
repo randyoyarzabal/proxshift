@@ -1,0 +1,8 @@
+---
+# Default values for cluster_auth role
+
+# SSL certificate validation
+cluster_auth_validate_certs: false
+
+# Verbose output
+cluster_auth_verbose: false

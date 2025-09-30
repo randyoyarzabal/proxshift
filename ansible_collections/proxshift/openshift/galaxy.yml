@@ -1,0 +1,23 @@
+namespace: proxshift
+name: openshift
+version: 1.0.0
+readme: README.md
+authors:
+  - Randy Oyarzabal <randyoyarzabal@gmail.com>
+description: ProxShift OpenShift management and automation collection
+license:
+  - MIT
+license_file: ''
+tags:
+  - openshift
+  - kubernetes
+  - cluster
+  - automation
+  - acm
+  - management
+dependencies: {}
+repository: https://github.com/randyoyarzabal/proxshift
+documentation: https://github.com/randyoyarzabal/proxshift/tree/main/docs
+homepage: https://github.com/randyoyarzabal/proxshift
+issues: https://github.com/randyoyarzabal/proxshift/issues
+build_ignore: []

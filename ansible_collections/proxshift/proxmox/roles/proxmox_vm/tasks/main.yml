@@ -1,0 +1,319 @@
+---
+# Proxmox VM role with clean interface
+
+- name: "Validate required variables"
+  ansible.builtin.assert:
+    that:
+      - proxmox_vm_api is defined
+      - proxmox_vm_api.host is defined
+      - proxmox_vm_api.user is defined
+      - proxmox_vm_api.password is defined
+      - proxmox_vm_config is defined
+      - proxmox_vm_config.node is defined
+      - proxmox_vm_config.name is defined
+      - proxmox_vm_config.memory is defined
+    fail_msg: "Required variables missing. Check meta/argument_specs.yml for interface."
+
+- name: "Get next available VM ID if not provided"
+  block:
+    - name: "Authenticate with Proxmox API"
+      ansible.builtin.uri:
+        url: "https://{{ proxmox_vm_api.host }}:8006/api2/json/access/ticket"
+        method: POST
+        body_format: form-urlencoded
+        body:
+          username: "{{ proxmox_vm_api.user }}"
+          password: "{{ proxmox_vm_api.password }}"
+        validate_certs: false
+      register: _proxmox_auth
+      delegate_to: localhost
+      failed_when: false
+
+    - name: "Query all cluster resources via Proxmox API"
+      ansible.builtin.uri:
+        url: "https://{{ proxmox_vm_api.host }}:8006/api2/json/cluster/resources"
+        method: GET
+        headers:
+          Cookie: "PVEAuthCookie={{ _proxmox_auth.json.data.ticket }}"
+          CSRFPreventionToken: "{{ _proxmox_auth.json.data.CSRFPreventionToken }}"
+        validate_certs: false
+      register: _proxmox_resources
+      delegate_to: localhost
+      when: _proxmox_auth.status == 200
+
+    - name: "Extract existing VM and LXC IDs from cluster resources"
+      ansible.builtin.set_fact:
+        _existing_vm_ids: "{{ _proxmox_resources.json.data | selectattr('type', 'equalto', 'qemu') | map(attribute='vmid') | map('int') | list if _proxmox_auth.status == 200 and _proxmox_resources.status == 200 else [] }}"
+        _existing_lxc_ids: "{{ _proxmox_resources.json.data | selectattr('type', 'equalto', 'lxc') | map(attribute='vmid') | map('int') | list if _proxmox_auth.status == 200 and _proxmox_resources.status == 200 else [] }}"
+
+    - name: "Combine all existing IDs (VMs + LXC)"
+      ansible.builtin.set_fact:
+        _existing_vmids: "{{ (_existing_vm_ids | default([])) + (_existing_lxc_ids | default([])) }}"
+
+    - name: "Calculate next available VM ID"
+      ansible.builtin.set_fact:
+        _next_vmid: "{{ range(100, 1000) | difference(_existing_vmids) | first | default(100) }}"
+      
+    - name: "Set auto-assigned VM ID"
+      ansible.builtin.set_fact:
+        proxmox_vm_config: "{{ proxmox_vm_config | combine({'vmid': _next_vmid}) }}"
+
+    - name: "Display assigned VM ID"
+      ansible.builtin.debug:
+        msg: 
+          - "Auto-assigned VM ID: {{ _next_vmid }}"
+          - "Existing QEMU VM IDs: {{ _existing_vm_ids | default([]) | sort }}"
+          - "Existing LXC container IDs: {{ _existing_lxc_ids | default([]) | sort }}"
+          - "All existing IDs (combined): {{ _existing_vmids | sort }}"
+
+  when: proxmox_vm_config.vmid is not defined
+
+- name: "Merge VM configuration with defaults"
+  ansible.builtin.set_fact:
+    _proxmox_vm_final_config: "{{ proxmox_vm_defaults | combine(proxmox_vm_config, recursive=true) }}"
+
+- name: "Validate disk configurations"
+  ansible.builtin.assert:
+    that:
+      - item.value.size is defined
+      - (item.value.size is string and item.value.size | length > 0) or (item.value.size is number and item.value.size > 0)
+    fail_msg: "Disk '{{ item.key }}' is missing required 'size' parameter or size is invalid"
+  loop: "{{ _proxmox_vm_final_config.disks | dict2items }}"
+  when: _proxmox_vm_final_config.disks | length > 0
+
+- name: "Validate network interface configurations"
+  ansible.builtin.assert:
+    that:
+      - item.value is defined
+      - item.value is mapping
+    fail_msg: "Network interface '{{ item.key }}' configuration must be a dictionary"
+  loop: "{{ _proxmox_vm_final_config.nics | dict2items }}"
+  when: _proxmox_vm_final_config.nics | length > 0
+
+- name: "Check if VM exists"
+  community.general.proxmox_kvm:
+    api_host: "{{ proxmox_vm_api.host }}"
+    api_user: "{{ proxmox_vm_api.user }}"
+    api_password: "{{ proxmox_vm_api.password }}"
+    node: "{{ _proxmox_vm_final_config.node }}"
+    vmid: "{{ _proxmox_vm_final_config.vmid }}"
+    state: current
+  register: _proxmox_vm_status
+  delegate_to: localhost
+  ignore_errors: true
+  failed_when: false
+  no_log: true  # Prevent API password exposure in logs
+
+- name: "Debug VM exists check result"
+  ansible.builtin.debug:
+    msg:
+      - "VM exists check failed: {{ _proxmox_vm_status.failed | default(false) }}"
+      - "VM exists check status defined: {{ _proxmox_vm_status.status is defined }}"
+      - "VM exists check msg: {{ _proxmox_vm_status.msg | default('no message') }}"
+      - "VM will be created: {{ (not _proxmox_vm_status.status is defined) or proxmox_vm_force }}"
+
+- name: "Show VM exists message"
+  ansible.builtin.debug:
+    msg: "VM {{ _proxmox_vm_final_config.name }} (VMID: {{ _proxmox_vm_final_config.vmid }}) already exists"
+  when:
+    - _proxmox_vm_status.status is defined
+    - not proxmox_vm_force
+    - proxmox_vm_state == 'present'
+
+- name: "Delete existing VM if force enabled"
+  community.general.proxmox_kvm:
+    api_host: "{{ proxmox_vm_api.host }}"
+    api_user: "{{ proxmox_vm_api.user }}"
+    api_password: "{{ proxmox_vm_api.password }}"
+    node: "{{ _proxmox_vm_final_config.node }}"
+    vmid: "{{ _proxmox_vm_final_config.vmid }}"
+    force: true
+    state: absent
+  when:
+    - _proxmox_vm_status.status is defined
+    - proxmox_vm_force
+    - proxmox_vm_state == 'present'
+  register: _delete_vm_result
+  delegate_to: localhost
+  until: not _delete_vm_result.failed
+  retries: 5
+  delay: 10
+  no_log: true  # Prevent API password exposure in logs
+
+- name: "Create VM"
+  community.general.proxmox_kvm:
+    api_host: "{{ proxmox_vm_api.host }}"
+    api_user: "{{ proxmox_vm_api.user }}"
+    api_password: "{{ proxmox_vm_api.password }}"
+    node: "{{ _proxmox_vm_final_config.node }}"
+    vmid: "{{ _proxmox_vm_final_config.vmid }}"
+    name: "{{ _proxmox_vm_final_config.name }}"
+    memory: "{{ _proxmox_vm_final_config.memory }}"
+    cores: "{{ _proxmox_vm_final_config.cores }}"
+    sockets: "{{ _proxmox_vm_final_config.sockets }}"
+    cpu: "{{ _proxmox_vm_final_config.cpu }}"
+    boot: "{{ _proxmox_vm_final_config.boot }}"
+    onboot: "{{ _proxmox_vm_final_config.onboot }}"
+    scsihw: "{{ _proxmox_vm_final_config.scsihw }}"
+    numa_enabled: "{{ _proxmox_vm_final_config.numa }}"
+    ostype: "{{ _proxmox_vm_final_config.ostype }}"
+    state: "{{ proxmox_vm_state }}"
+    # Add temporary disk for qcow2 import if needed
+    virtio: "{{ {'virtio0': proxmox_vm_qcow2_temp_storage + ':' + (proxmox_vm_qcow2_temp_size | string)} if _proxmox_vm_final_config.qcow2_image is defined else omit }}"
+    # Add cloud-init configuration if provided
+    ciuser: "{{ _proxmox_vm_final_config.cloud_init.user | default(omit) }}"
+    cipassword: "{{ _proxmox_vm_final_config.cloud_init.password | default(omit) }}"
+    sshkeys: "{{ _proxmox_vm_final_config.cloud_init.public_key | default(omit) }}"
+    nameservers: "{{ _proxmox_vm_final_config.cloud_init.nameservers | default(omit) }}"
+    searchdomains: "{{ _proxmox_vm_final_config.cloud_init.searchdomains | default(omit) }}"
+    ipconfig: "{{ {'ipconfig0': _proxmox_vm_final_config.cloud_init.ipconfig} if _proxmox_vm_final_config.cloud_init.ipconfig is defined else omit }}"
+    ide: "{{ {'ide0': proxmox_vm_qcow2_temp_storage + ':cloudinit,media=cdrom'} if _proxmox_vm_final_config.cloud_init is defined and _proxmox_vm_final_config.cloud_init | length > 0 else omit }}"
+  when: 
+    - proxmox_vm_state in ['present']
+    - (not _proxmox_vm_status.status is defined) or proxmox_vm_force
+  register: _proxmox_vm_creation_result
+  delegate_to: localhost
+  no_log: true  # Prevent API password exposure in logs
+
+- name: "Debug VM creation result and qcow2 config"
+  ansible.builtin.debug:
+    msg:
+      - "VM creation changed: {{ _proxmox_vm_creation_result is changed }}"
+      - "QCOW2 image defined: {{ _proxmox_vm_final_config.qcow2_image is defined }}"
+      - "QCOW2 image value: {{ _proxmox_vm_final_config.qcow2_image | default('NOT SET') }}"
+      - "Node: {{ _proxmox_vm_final_config.node }}"
+      - "VM status exists: {{ _proxmox_vm_status.status is defined }}"
+
+- name: "Import QCOW2 disk image"
+  ansible.builtin.shell: |
+    # Delete temporary disk
+    /usr/sbin/qm set {{ _proxmox_vm_final_config.vmid }} --delete virtio0
+    /usr/sbin/qm set {{ _proxmox_vm_final_config.vmid }} --delete unused0
+    # Import qcow2 image
+    /usr/sbin/qm importdisk {{ _proxmox_vm_final_config.vmid }} {{ _proxmox_vm_final_config.qcow2_image_path | default('/var/lib/vz/images') }}/{{ _proxmox_vm_final_config.qcow2_image }} {{ (_proxmox_vm_final_config.disks.scsi0.storage) | default('local-lvm') }}
+    # Attach imported disk as primary boot disk
+    /usr/sbin/qm set {{ _proxmox_vm_final_config.vmid }} --scsi0 {{ (_proxmox_vm_final_config.disks.scsi0.storage) | default('local-lvm') }}:vm-{{ _proxmox_vm_final_config.vmid }}-disk-0
+  delegate_to: "{{ _proxmox_vm_final_config.node }}"
+  vars:
+    ansible_user: root
+    ansible_ssh_user: root
+    ansible_ssh_private_key_file: "~/.ssh/id_rsa"
+    ansible_python_interpreter: /usr/bin/python3
+  when:
+    - proxmox_vm_state in ['present']
+    - _proxmox_vm_final_config.qcow2_image is defined
+    - (not _proxmox_vm_status.status is defined) or proxmox_vm_force
+    - _proxmox_vm_creation_result is changed
+  register: _qcow2_import_result
+
+- name: "Update VM boot configuration after qcow2 import"
+  community.general.proxmox_kvm:
+    api_host: "{{ proxmox_vm_api.host }}"
+    api_user: "{{ proxmox_vm_api.user }}"
+    api_password: "{{ proxmox_vm_api.password }}"
+    node: "{{ _proxmox_vm_final_config.node }}"
+    vmid: "{{ _proxmox_vm_final_config.vmid }}"
+    boot: "{{ _proxmox_vm_final_config.boot }}"
+    bootdisk: scsi0
+    update: true
+  when:
+    - proxmox_vm_state in ['present']
+    - _proxmox_vm_final_config.qcow2_image is defined
+    - _qcow2_import_result is changed
+  delegate_to: localhost
+  no_log: true  # Prevent API password exposure in logs
+
+- name: "Add CD-ROM with ISO image"
+  community.general.proxmox_disk:
+    api_host: "{{ proxmox_vm_api.host }}"
+    api_user: "{{ proxmox_vm_api.user }}"
+    api_password: "{{ proxmox_vm_api.password }}"
+    vmid: "{{ _proxmox_vm_final_config.vmid }}"
+    disk: ide2
+    media: cdrom
+    iso_image: "{{ _proxmox_vm_final_config.iso_image }}"
+    state: present
+  when:
+    - proxmox_vm_state in ['present']
+    - _proxmox_vm_final_config.iso_image is defined
+    - (not _proxmox_vm_status.status is defined) or proxmox_vm_force
+  delegate_to: localhost
+  no_log: true  # Prevent API password exposure in logs
+
+- name: "Configure VM disks"
+  community.general.proxmox_disk:
+    api_host: "{{ proxmox_vm_api.host }}"
+    api_user: "{{ proxmox_vm_api.user }}"
+    api_password: "{{ proxmox_vm_api.password }}"
+    vmid: "{{ _proxmox_vm_final_config.vmid }}"
+    disk: "{{ item.key }}"
+    storage: "{{ item.value.storage | default('local-lvm') }}"
+    size: "{{ item.value.size if (item.value.size is string) else (item.value.size | string) }}"
+    backup: "{{ item.value.backup | default(omit) }}"
+    ssd: "{{ item.value.ssd | default(omit) }}"
+    iothread: "{{ item.value.iothread | default(omit) }}"
+    wwn: "{{ item.value.wwn | default(omit) }}"
+    state: present
+  loop: "{{ _proxmox_vm_final_config.disks | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}: {{ item.value.size }}G"
+  when:
+    - proxmox_vm_state in ['present']
+    - (not _proxmox_vm_status.status is defined) or proxmox_vm_force
+    - _proxmox_vm_final_config.disks | length > 0
+    # Skip scsi0 if qcow2_image is defined (it's handled by import)
+    - not (_proxmox_vm_final_config.qcow2_image is defined and item.key == 'scsi0')
+  delegate_to: localhost
+  no_log: true  # Prevent API password exposure in logs
+
+- name: "Resize imported qcow2 disk if size specified"
+  ansible.builtin.shell: |
+    /usr/sbin/qm resize {{ _proxmox_vm_final_config.vmid }} scsi0 {{ _proxmox_vm_final_config.disks.scsi0.size }}G
+  delegate_to: "{{ _proxmox_vm_final_config.node }}"
+  vars:
+    ansible_user: root
+    ansible_ssh_user: root
+    ansible_ssh_private_key_file: "~/.ssh/id_rsa"
+    ansible_python_interpreter: /usr/bin/python3
+  when:
+    - proxmox_vm_state in ['present']
+    - _proxmox_vm_final_config.qcow2_image is defined
+    - _proxmox_vm_final_config.disks.scsi0 is defined
+    - _proxmox_vm_final_config.disks.scsi0.size is defined
+    - _qcow2_import_result is changed
+  register: _qcow2_resize_result
+
+- name: "Configure VM network interfaces"
+  community.general.proxmox_nic:
+    api_host: "{{ proxmox_vm_api.host }}"
+    api_user: "{{ proxmox_vm_api.user }}"
+    api_password: "{{ proxmox_vm_api.password }}"
+    vmid: "{{ _proxmox_vm_final_config.vmid }}"
+    interface: "{{ item.key }}"
+    model: "{{ item.value.model | default('virtio') }}"
+    bridge: "{{ item.value.bridge | default('vmbr0') }}"
+    mac: "{{ item.value.mac | default(omit) }}"
+    tag: "{{ item.value.tag | default(omit) }}"
+    firewall: "{{ item.value.firewall | default(false) | bool }}"
+    state: present
+  loop: "{{ _proxmox_vm_final_config.nics | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}: {{ item.value.bridge | default('vmbr0') }}"
+  when:
+    - proxmox_vm_state in ['present']
+    - (not _proxmox_vm_status.status is defined) or proxmox_vm_force
+    - _proxmox_vm_final_config.nics | length > 0
+  delegate_to: localhost
+  no_log: true  # Prevent API password exposure in logs
+
+- name: "Manage VM power state"
+  community.general.proxmox_kvm:
+    api_host: "{{ proxmox_vm_api.host }}"
+    api_user: "{{ proxmox_vm_api.user }}"
+    api_password: "{{ proxmox_vm_api.password }}"
+    node: "{{ _proxmox_vm_final_config.node }}"
+    vmid: "{{ _proxmox_vm_final_config.vmid }}"
+    state: "{{ proxmox_vm_state }}"
+  when: proxmox_vm_state in ['started', 'stopped', 'restarted', 'absent']
+  delegate_to: localhost
+  no_log: true  # Prevent API password exposure in logs

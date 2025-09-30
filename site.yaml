@@ -1,0 +1,287 @@
+---
+# ProxShift - OpenShift Cluster Provisioning
+# 
+# This playbook automates the complete OpenShift cluster deployment process:
+# 1. Retrieve secrets from HashiCorp Vault
+# 2. Set cluster variables from inventory  
+# 3a. Install preparation (validation and setup)
+# 3b. Generate OpenShift manifests (modular)
+# 3c. Create bootable ISO image (modular)
+# 4. ACM detach/prepare import configs (if not hub cluster)
+# 5. Provision VMs on Proxmox
+# 6. Start Proxmox VMs
+# 7. Wait for OpenShift installation completion + write credentials to vault
+# 8. Import cluster to hub (ACM import)
+# 9. Apply storage labels (post-install, configurable)
+# 10. Backup or restore certificate secrets (configurable)
+# 11. Apply GitOps/ESO configuration (configurable)
+# 12. Apply other post-installation tasks
+#
+# Usage:
+#   ansible-playbook site.yaml -e cluster_name=ocp-sno1                    # Full deployment
+#   ansible-playbook site.yaml -e cluster_name=ocp-sno1 --tags=manifests  # Manifests only
+#   ansible-playbook site.yaml -e cluster_name=ocp-sno1 --tags=create_iso # ISO creation only
+#   ansible-playbook site.yaml -e cluster_name=ocp-sno1 -e enable_gitops=true  # Enable GitOps
+#   ansible-playbook site.yaml -e cluster_name=ocp-sno1 -e enable_acm_import=false  # Skip ACM
+
+- name: ProxShift - OpenShift Cluster Provisioning
+  hosts: localhost
+  gather_facts: true
+
+  vars:
+    cluster_name: 'ocp-sno3' # Safe cluster to use for testing
+    force_install: false  # Set to true to force reinstallation (deletes existing installation directory)
+    is_cluster_provisioned: false # Will be true if the cluster is already provisioned or if force_install is true
+    verbose_enabled: false
+    vault_values: {} # Runtime variable - will hold the values of 'vault_items' during execution
+    
+    # Feature flags - Set to false to disable optional components for blank cluster deployment
+    enable_acm_import: true      # Enable ACM hub import/detach functionality
+    enable_gitops: true         # Enable GitOps configuration deployment (most users want blank cluster)
+    enable_eso: true             # Enable External Secrets Operator (only when GitOps is enabled)
+    enable_gitops_hub: true      # Enable GitOps hub reconciliation loop
+    enable_storage_labels: true  # Enable storage node labeling (OCS/ODF)
+    backup_operation: false      # Set to true to backup certificate secrets
+    restore_operation: false     # Set to true to restore certificate secrets
+    backup_verbose: false        # Enable verbose output for backup/restore operations
+    enable_backup_restore: true  # Enable certificate backup/restore functionality
+  vars_files:
+    - config/site-config.yaml
+    - "{{ vault_path | default('config/vault-credentials.yml') }}" # Secrets vault path
+
+  pre_tasks:
+    # Step 1: Retrieve secrets from HashiCorp Vault
+    - name: "Retrieve secrets from HashiCorp Vault"
+      ansible.builtin.include_role:
+        name: proxshift.hashi_vault.hashicorp_vault
+      vars:
+        hashicorp_vault_api:
+          url: "{{ vault_addr }}"
+          token: "{{ vault_token }}"
+        hashicorp_vault_secrets: "{{ vault_items }}"
+        hashicorp_vault_output_var: "vault_values"
+      no_log: true  # Prevent vault token exposure in logs
+      tags:
+        - always
+
+  tasks:
+    # Step 2: Set cluster variables from inventory
+    - name: "Set cluster variables from inventory"
+      ansible.builtin.set_fact:
+        ocp_version: "{{ hostvars[groups[cluster_name][0]]['ocp_version'] }}"
+        ocp_install_dir: "ocp_install/{{ cluster_name }}"
+        cluster_api_url: "https://api.{{ cluster_name }}.{{ network_defaults.base_domain }}:6443"
+      tags:
+        - always
+
+    # Step 3a: Install preparation (validation and setup)
+    - name: "Install preparation for cluster: {{ _task_name_suffix }}"
+      ansible.builtin.include_tasks:
+        file: tasks/install_prep.yml
+      vars:
+        _task_name_suffix: "{{ cluster_name }} ver: {{ ocp_version }}" # Let's make the linter happy.
+      tags:
+        - always
+        - manifests
+        - create_iso
+
+    # Step 3b: Generate OpenShift manifests
+    - name: "Generate manifests for cluster: {{ cluster_name }}"
+      ansible.builtin.include_tasks:
+        file: tasks/generate_manifests.yml
+      tags:
+        - manifests
+
+    # Step 3c: Create bootable ISO image  
+    - name: "Create bootable ISO for cluster: {{ cluster_name }}"
+      ansible.builtin.include_tasks:
+        file: tasks/create_iso.yml
+      tags:
+        - create_iso
+
+    # Step 4: ACM detach/prepare import configs (if not hub cluster)
+    - name: Detach cluster from hub if necessary and apply import configuration
+      ansible.builtin.include_role:
+        name: proxshift.openshift.acm_import
+      vars:
+        acm_import_enabled: true
+        acm_import_cluster: "{{ cluster_name }}"
+        acm_import_hub_cluster: "{{ hub_cluster }}"
+        acm_import_cluster_api_url: "{{ cluster_api_url }}"
+        acm_import_hub_cluster_api_url: "{{ hub_cluster_api_url }}"
+        acm_import_api_key: ""
+        acm_import_output_dir: "{{ ocp_install_dir }}"
+      when: (hub_cluster != cluster_name) and enable_acm_import | default(true)
+      tags:
+        - acm_import
+        - vm_delete
+
+    # Step 5: Provision VMs on Proxmox
+    - name: "Provision VMs on Proxmox for {{ cluster_name }}"
+      ansible.builtin.include_role:
+        name: proxshift.proxmox.proxmox_vm
+        apply:
+          tags:
+            - vm_create
+            - vm_delete
+      loop: "{{ groups[cluster_name] }}"
+      loop_control:
+        loop_var: node_name
+      vars:
+        proxmox_vm_api:
+          host: "{{ hostvars[node_name]['pve_node'] | default(hostvars[node_name]['node']) }}"
+          user: "{{ proxmox_api_user }}"
+          password: "{{ proxmox_api_password }}"
+        proxmox_vm_config:
+          name: "{{ node_name }}"
+          node: "{{ hostvars[node_name]['pve_node'] | default(hostvars[node_name]['node']) }}"
+          vmid: "{{ hostvars[node_name]['vmid'] }}"
+          memory: "{{ hostvars[node_name]['memory'] }}"
+          cores: "{{ hostvars[node_name]['cores'] | default(2) }}"
+          sockets: "{{ hostvars[node_name]['sockets'] | default(1) }}"
+          cpu: "{{ hostvars[node_name]['cpu'] | default('host') }}"
+          boot: "{{ hostvars[node_name]['boot'] | default('order=scsi0;ide2') }}"
+          onboot: "{{ hostvars[node_name]['onboot'] | default(true) }}"
+          ostype: "{{ hostvars[node_name]['ostype'] | default('l26') }}"
+          iso_image: "{{ hostvars[node_name]['iso_image'] | default(omit) }}"
+          disks: "{{ hostvars[node_name]['disks'] | default({}) }}"
+          nics: "{{ hostvars[node_name]['nics'] | default({}) }}"
+        proxmox_vm_state: present
+        proxmox_vm_force: "{{ force_install }}"
+      tags:
+        - vm_create
+        - vm_delete
+
+    # Step 6: Start Proxmox VMs
+    - name: "Start Proxmox VMs for the cluster {{ cluster_name }}"
+      ansible.builtin.include_role:
+        name: proxshift.proxmox.vm_lifecycle
+      vars:
+        start_stop_vms_state: 'started'
+      tags:
+        - vm_start
+
+    # Step 7: Wait for OpenShift installation completion + write credentials to vault
+    - name: Wait for OpenShift installation to complete
+      ansible.builtin.include_tasks:
+        file: tasks/installation.yml
+      tags:
+        - install
+        - vault
+        - cluster_login
+
+    # Step 8: Import cluster to hub (ACM import)
+    - name: Import cluster to hub cluster
+      ansible.builtin.include_role:
+        name: proxshift.openshift.acm_import
+      vars:
+        acm_import_import: true
+        acm_import_cluster: "{{ cluster_name }}"
+        acm_import_hub_cluster: "{{ hub_cluster }}"
+        acm_import_cluster_api_url: "{{ cluster_api_url }}"
+        acm_import_hub_cluster_api_url: "{{ hub_cluster_api_url }}"
+        acm_import_api_key: ""
+        acm_import_output_dir: "{{ ocp_install_dir }}"
+      when: (hub_cluster != cluster_name) and enable_acm_import | default(true)
+      tags:
+        - acm_import
+
+    # Step 9: Apply storage labels (post-install, configurable)
+    - name: "Apply storage labels to the cluster nodes: {{ cluster_name }}"
+      ansible.builtin.include_role:
+        name: proxshift.openshift.node_labeling
+      vars:
+        oc_apply_label_cluster_url: "{{ cluster_api_url }}"
+        oc_apply_label_api_key: "{{ oc_kubeadmin_value_return }}"
+        oc_apply_label_key: 'cluster.ocs.openshift.io/openshift-storage'
+        oc_apply_label_value: ''
+      when: (cluster_name in ['ocp']) and enable_storage_labels | default(true)
+      tags:
+        - post
+        - storage
+
+    # Step 10: Certificate backup operation (standalone - for EXISTING clusters)
+    - name: "Backup certificate secrets from existing cluster: {{ cluster_name }}"
+      when:
+        - cluster_name in ['ocp-sno1']
+        - backup_operation | default(false)
+      tags:
+        - cert_backup
+        - never  # Only run when explicitly requested
+      block:
+        - name: "Login to existing cluster for certificate backup: {{ cluster_name }}"
+          ansible.builtin.include_tasks:
+            file: tasks/cluster_login.yml
+          vars:
+            login_cluster_name: "{{ cluster_name }}"
+            login_cluster_api_url: "{{ cluster_api_url }}"
+            login_auth_method: "kubeadmin"
+
+        - name: "Backup certificate secrets from cluster: {{ cluster_name }}"
+          ansible.builtin.include_role:
+            name: proxshift.openshift.secret_management
+          vars:
+            secret_management_cluster:
+              api_host: "{{ cluster_api_url }}"
+              api_key: "{{ cluster_auth_token }}"
+              validate_certs: false
+            secret_management_backup_dir: "{{ backup_dir }}"
+            secret_management_secrets: "{{ backup_secrets }}"
+            secret_management_operation: "backup"
+            secret_management_verbose: "{{ backup_verbose | default(false) }}"
+
+    # Step 11: Certificate restore operation (during cluster rebuild/post-install)
+    - name: "Restore certificate secrets to rebuilt cluster: {{ cluster_name }}"
+      when:
+        - cluster_name in ['ocp-sno1']
+        - restore_operation | default(false)
+        - enable_backup_restore | default(true)
+      tags:
+        - post
+        - cert_restore
+      block:
+        - name: "Login to rebuilt cluster for certificate restore: {{ cluster_name }}"
+          ansible.builtin.include_tasks:
+            file: tasks/cluster_login.yml
+          vars:
+            login_cluster_name: "{{ cluster_name }}"
+            login_cluster_api_url: "{{ cluster_api_url }}"
+            login_auth_method: "kubeadmin"
+
+        - name: "Restore certificate secrets to cluster: {{ cluster_name }}"
+          ansible.builtin.include_role:
+            name: proxshift.openshift.secret_management
+          vars:
+            secret_management_cluster:
+              api_host: "{{ cluster_api_url }}"
+              api_key: "{{ cluster_auth_token }}"
+              validate_certs: false
+            secret_management_backup_dir: "{{ backup_dir }}"
+            secret_management_secrets: "{{ backup_secrets }}"
+            secret_management_operation: "restore"
+            secret_management_verbose: "{{ backup_verbose | default(false) }}"
+
+    # Step 12: Apply GitOps/ESO configuration (configurable)
+    - name: Apply GitOps configuration
+      tags:
+        - gitops
+        - gitops_loop
+        - eso
+        - acm
+      when: enable_gitops | default(false)
+      block:
+        - name: Apply External Secrets Operator (ESO) configuration
+          ansible.builtin.include_tasks:
+            file: tasks/gitops/eso_tasks.yml
+          when: enable_eso | default(true)
+        - name: Initialize the Hub GitOps reconciliation loop
+          ansible.builtin.include_tasks:
+            file: tasks/gitops/init_hub.yml
+          when: (hub_cluster == cluster_name) and enable_gitops_hub | default(true)
+
+    # Step 13: Apply other post-installation tasks
+    - name: Apply any other necessary tasks for the cluster
+      ansible.builtin.include_tasks:
+        file: tasks/post_tasks.yml
+      tags:
+        - post

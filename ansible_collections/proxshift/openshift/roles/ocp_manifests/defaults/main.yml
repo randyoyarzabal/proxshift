@@ -1,0 +1,14 @@
+---
+# Default values for ocp_manifests role
+
+ocp_manifests_backup: true
+ocp_manifests_file_mode: "0600"
+
+# Default cluster configuration
+ocp_manifests_defaults:
+  cluster:
+    version: "4.16.7"
+  network:
+    interface_name: "eno1"
+    cluster_cidr: "10.128.0.0/14"
+    service_cidr: "172.30.0.0/16"

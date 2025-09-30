@@ -1,0 +1,48 @@
+---
+# Generate OpenShift install manifests
+# This task file handles manifest generation only, separate from ISO creation
+
+- name: 'Generate OpenShift install files for cluster: {{ cluster_name }}'
+  ansible.builtin.include_role:
+    name: proxshift.openshift.ocp_manifests
+    apply:
+      tags:
+        - manifests
+  vars:
+    ocp_manifests_cluster:
+      name: "{{ cluster_name }}"
+      version: "{{ ocp_version }}"
+    ocp_manifests_output_dir: "{{ ocp_install_dir }}"
+    ocp_manifests_credentials:
+      pull_secret: "{{ vault_values['pull-secret'] }}"
+      ssh_key: "{{ vault_values['ssh-key'] }}"
+      cert_bundle: "{{ vault_values['cert-bundle'] | default('') }}"
+    ocp_manifests_network:
+      base_domain: "{{ network_defaults.base_domain }}"
+      subnet: "{{ network_defaults.subnet }}" 
+      gateway: "{{ network_defaults.gateway }}"
+      dns_servers: "{{ network_defaults.dns_servers }}"
+      interface_name: "{{ network_defaults.interface_name }}"
+      cluster_cidr: "{{ network_defaults.cluster_cidr }}"
+      service_cidr: "{{ network_defaults.service_cidr }}"
+    ocp_manifests_nodes: "{{ groups[cluster_name] | map('extract', hostvars) | list }}"
+    ocp_manifests_backup: true
+  tags:
+    - manifests
+
+- name: "Display manifest generation completion"
+  ansible.builtin.debug:
+    msg: |-
+      Manifest generation completed for cluster: {{ cluster_name }}
+      Version: {{ ocp_version }}
+      Output directory: {{ ocp_install_dir }}
+      Generated files:
+        - install-config.yaml (+ .bak copy)
+        - agent-config.yaml (+ .bak copy)
+      
+      Next steps:
+        - Review and customize manifests if needed
+        - Run with 'create_iso' tag to generate bootable ISO
+        - Or use ps.provision for full cluster deployment
+  tags:
+    - manifests

@@ -1,0 +1,8 @@
+---
+# Default values for secret_management role
+
+# Operation to perform
+secret_management_operation: "backup"
+
+# Verbose output
+secret_management_verbose: false

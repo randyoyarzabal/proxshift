@@ -1,0 +1,47 @@
+---
+apiVersion: v1
+baseDomain: {{ network_defaults.base_domain }}
+metadata:
+  name: {{ cluster_name }}
+compute:
+- architecture: amd64
+  hyperthreading: Enabled
+  name: worker
+  replicas: {{ (groups[cluster_name] | length) - (1 if hostvars[groups[cluster_name][0]]['cluster_type'] == 'sno' else 3) }}
+{% if hostvars[groups[cluster_name][0]]['cluster_type'] != 'sno' %}
+  rootVolume:
+    device: /dev/sda
+{% endif %}
+controlPlane:
+  architecture: amd64
+  hyperthreading: Enabled
+  name: master
+  replicas: {{ 1 if hostvars[groups[cluster_name][0]]['cluster_type'] == 'sno' else 3 }}
+{% if hostvars[groups[cluster_name][0]]['cluster_type'] != 'sno' %}
+  rootVolume:
+    device: /dev/sda
+{% endif %}
+networking:
+  clusterNetwork:
+  - cidr: {{ network_defaults.cluster_cidr }}
+    hostPrefix: 23
+  machineNetwork:
+  - cidr: {{ network_defaults.subnet }}
+  networkType: OVNKubernetes
+  serviceNetwork:
+  - {{ network_defaults.service_cidr }}
+platform:
+{% if hostvars[groups[cluster_name][0]]['cluster_type'] == 'sno' %}
+  none: {}
+{% else %}
+  baremetal:
+    apiVIPs:
+    - {{ hostvars[groups[cluster_name][0]]['api_vip'] }}
+    ingressVIPs:
+    - {{ hostvars[groups[cluster_name][0]]['ingress_vip'] }}
+{% endif %}
+fips: false
+pullSecret: '{{ generate_install_files_pull_secret | to_json }}'
+sshKey: '{{ generate_install_files_ssh_key }}'
+additionalTrustBundle: |
+  {{ generate_install_files_cert_bundle | indent(2) }}

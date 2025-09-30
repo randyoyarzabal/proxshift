@@ -1,93 +1,194 @@
-# proxshift
+# ProxShift ⚡
 
+OpenShift clusters on Proxmox made simple.
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Ansible](https://img.shields.io/badge/Ansible-2.15%2B-red)](https://ansible.com)
+[![OpenShift](https://img.shields.io/badge/OpenShift-4.16%2B-red)](https://openshift.com)
 
-## Getting started
+## 🚀 Quick Start
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+```bash
+# 1. Setup virtual environment (avoids "pip externally managed" errors)
+git clone https://github.com/randyoyarzabal/proxshift.git
+cd proxshift
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+# 2. Configure and deploy
+cp examples/site-config.yaml config/
+cp examples/clusters.yml.template inventory/clusters.yml
+# Edit configs for your environment
 
-## Add your files
+# 3. Set environment and deploy cluster
+export PROXSHIFT_ROOT=$HOME/dev/proxshift
+export PROXSHIFT_VAULT_PASS=${PROXSHIFT_ROOT}/config/.vault_pass
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+source proxshift.sh
+ps.activate
+ps.provision ocp-sno1
+```
+
+## ✨ Features
+
+- **🐍 Modern Python Setup** - Virtual environment support with manual activation control
+- **📦 Zero Package Management** - No sudo required, uses user-space mounts
+- **🔐 Secure by Default** - All credential operations use `no_log: true`
+- **🏗️ Inventory-Driven** - Define all clusters in `inventory/clusters.yml`
+- **🎨 Universal Templates** - No per-cluster files to maintain
+- **🤖 Auto-Detection** - SNO vs multi-node, IPs, roles, protocol detection
+- **🌍 Portable** - Works from any directory with consistent setup
+
+## 📋 Requirements
+
+### System Prerequisites
+
+| OS | Requirements |
+|----|-------------|
+| **macOS** | `brew install python3` (NFS/SMB built-in) |
+| **Ubuntu/Debian** | `apt install python3 python3-venv nfs-common cifs-utils` |
+| **RHEL/CentOS/Fedora** | `dnf install python3 nfs-utils cifs-utils` |
+
+### Infrastructure
+
+- **Proxmox VE 7.0+** with API access
+- **HashiCorp Vault** with KV secrets
+- **DNS** with cluster domain resolution
+- **Network** with static IP allocation
+
+## 🎯 Cluster Types
+
+| Cluster | Type | Nodes | Memory | Use Case |
+|---------|------|-------|---------|----------|
+| `ocp-sno1` | Single Node | 1 | 16GB+ | Edge, dev, testing |
+| `ocp3` | Compact | 3 masters | 48GB+ | Small production |
+| `ocp` | Standard | 3+3 | 96GB+ | Full production |
+
+## 🔧 Core Commands
+
+```bash
+# Environment setup (run once)
+source proxshift.sh  # Auto-activates .venv and loads functions
+
+# Cluster operations
+ps.clusters                    # List available clusters
+ps.provision ocp-sno1         # Deploy complete cluster
+ps.provision ocp-sno1 --dry-run  # Preview without execution
+
+# Lifecycle management
+ps.start ocp-sno1            # Start cluster VMs
+ps.deprovision ocp-sno1      # Stop and remove cluster
+
+# Template operations
+ps.generate_manifests ocp-sno1  # Generate OpenShift manifests only
+ansible-playbook site.yaml -e cluster_name=ocp-sno1 --tags=create_iso
+```
+
+## 🏗️ Architecture
 
 ```
-cd existing_repo
-git remote add origin https://gitlab.homelab.io/homelab/proxshift.git
-git branch -M main
-git push -uf origin main
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   ProxShift     │    │     Proxmox      │    │   OpenShift     │
+│   (Controller)  │────▶│   (Hypervisor)   │────▶│   (Cluster)     │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+         │                       │                       │
+    ┌────▼────┐              ┌───▼───┐              ┌────▼────┐
+    │  Vault  │              │  VMs  │              │  Nodes  │
+    │ (Secrets)│              │(ISO)  │              │(Workload)│
+    └─────────┘              └───────┘              └─────────┘
 ```
 
-## Integrate with your tools
+**ProxShift workflow:**
+1. 🔐 **Retrieve secrets** from HashiCorp Vault
+2. 🎨 **Generate manifests** using universal templates
+3. 💿 **Create ISO** with agent-based installer
+4. 🖥️ **Provision VMs** on Proxmox with ISO mounting
+5. ⚡ **Auto-install** OpenShift via agent installer
+6. 🔗 **Import cluster** to ACM hub (optional)
 
-- [ ] [Set up project integrations](https://gitlab.homelab.io/homelab/proxshift/-/settings/integrations)
+## 📁 Project Structure
 
-## Collaborate with your team
+```
+proxshift/
+├── .venv/                      # Virtual environment (auto-created)
+├── proxshift.sh               # Main entry point with auto-venv
+├── site.yaml                  # Primary Ansible playbook
+├── config/
+│   ├── site-config.yaml       # Environment configuration
+│   └── vault-credentials.yml  # Vault connection settings
+├── inventory/
+│   └── clusters.yml           # All cluster definitions
+├── ansible_collections/       # ProxShift roles and collections
+│   └── proxshift/
+│       ├── openshift/         # OpenShift-specific roles
+│       ├── proxmox/           # Proxmox VM management
+│       └── hashi_vault/       # Vault integration
+├── ocp_install/               # Generated files per cluster
+│   ├── ocp-sno1/             # ISO, credentials, manifests
+│   └── ocp3/
+└── docs/                      # Comprehensive documentation
+```
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+## 🔗 Documentation
 
-## Test and Deploy
+| Guide | Description |
+|-------|-------------|
+| **[Prerequisites](docs/PREREQUISITES.md)** | System requirements and virtual environment setup |
+| **[Setup Guide](docs/setup.md)** | Complete installation and configuration |
+| **[Environment Guide](docs/environment.md)** | Virtual environments and shell integration |
+| **[Architecture](docs/architecture.md)** | How ProxShift works internally |
+| **[Function Reference](docs/FUNCTION_REFERENCE.md)** | Complete command reference |
 
-Use the built-in continuous integration in GitLab.
+## 🐛 Troubleshooting
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+### "pip externally managed" Error
 
-***
+```bash
+# Solution: Use virtual environment (modern Python security)
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
 
-# Editing this README
+### Permission Denied on Mount
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+```bash
+# ProxShift uses user-space mounts in ./.tmpmount/ - no sudo needed
+# Ensure network share allows user access (SMB/NFS permissions)
+```
 
-## Suggestions for a good README
+### Ansible Collection Not Found
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+```bash
+# Ensure virtual environment is activated
+source .venv/bin/activate
+ansible-galaxy collection install -r collections/requirements.yml --force
+```
 
-## Name
-Choose a self-explaining name for your project.
+## 🤝 Contributing
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+1. Fork the repository
+2. Create feature branch: `git checkout -b feature/amazing-feature`
+3. Setup development environment: `source .venv/bin/activate`
+4. Test changes: `ansible-lint`, `yamllint`
+5. Commit changes: `git commit -m 'Add amazing feature'`
+6. Push to branch: `git push origin feature/amazing-feature`
+7. Open a Pull Request
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+## 📜 License
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+## 🙏 Acknowledgments
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+- OpenShift team for the agent-based installer
+- Proxmox team for the excellent virtualization platform
+- Ansible community for automation excellence
+- HashiCorp for Vault secret management
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+---
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+**ProxShift** - Where Proxmox meets OpenShift ⚡
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+🔗 **GitHub:** [https://github.com/randyoyarzabal/proxshift](https://github.com/randyoyarzabal/proxshift)

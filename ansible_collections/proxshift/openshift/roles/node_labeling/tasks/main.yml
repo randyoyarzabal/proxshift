@@ -1,0 +1,47 @@
+---
+# Apply labels to OpenShift cluster nodes
+
+- name: "Validate required variables"
+  ansible.builtin.assert:
+    that:
+      - node_labeling_cluster is defined
+      - node_labeling_cluster.api_host is defined
+      - node_labeling_cluster.api_key is defined
+      - node_labeling_labels is defined
+    fail_msg: "Required variables missing. Check meta/argument_specs.yml for interface."
+
+- name: "Get cluster nodes based on selector"
+  kubernetes.core.k8s_info:
+    host: "{{ node_labeling_cluster.api_host }}"
+    api_key: "{{ node_labeling_cluster.api_key }}"
+    validate_certs: "{{ node_labeling_cluster.validate_certs | default(false) }}"
+    label_selectors: "{{ node_labeling_node_selector | default(['node-role.kubernetes.io/worker=']) }}"
+    api_version: v1
+    kind: Node
+  register: _node_labeling_nodes
+
+- name: "Apply labels to target nodes"
+  kubernetes.core.k8s:
+    host: "{{ node_labeling_cluster.api_host }}"
+    api_key: "{{ node_labeling_cluster.api_key }}"
+    validate_certs: "{{ node_labeling_cluster.validate_certs | default(false) }}"
+    api_version: v1
+    kind: Node
+    name: "{{ item.metadata.name }}"
+    definition:
+      metadata:
+        labels: "{{ node_labeling_labels }}"
+    state: present
+  loop: "{{ _node_labeling_nodes.resources }}"
+  loop_control:
+    label: "Node - {{ item.metadata.name }}"
+  when: >
+    (node_labeling_target_nodes | default([]) | length == 0) or
+    (item.metadata.name in node_labeling_target_nodes)
+  register: _node_labeling_results
+  no_log: "{{ not (node_labeling_verbose | default(false)) }}"
+
+- name: "Show labeled nodes"
+  ansible.builtin.debug:
+    msg: "Successfully labeled nodes: {{ _node_labeling_nodes.resources | map(attribute='metadata.name') | list }}"
+  when: node_labeling_verbose | default(false)

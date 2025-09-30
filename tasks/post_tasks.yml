@@ -1,0 +1,50 @@
+# Login to the newly created OpenShift cluster using reusable cluster_login task
+- name: "Login to the newly created OpenShift cluster: {{ cluster_name }}"
+  ansible.builtin.include_tasks:
+    file: tasks/cluster_login.yml
+  vars:
+    login_cluster_name: "{{ cluster_name }}"
+    login_cluster_api_url: "{{ cluster_api_url }}"
+    login_auth_method: "kubeadmin"
+  tags:
+    - post
+    - storage
+  # cluster_auth_token will contain the kubeadmin api-key for the cluster
+
+- name: Check if storage class nfs-sc exists
+  kubernetes.core.k8s_info:
+    api_version: storage.k8s.io/v1
+    kind: StorageClass
+    name: nfs-sc
+    host: "{{ cluster_api_url }}"
+    api_key: "{{ cluster_auth_token }}"
+    validate_certs: false
+  register: nfs_sc_info
+  # until: nfs_sc_info.resources is defined and nfs_sc_info.resources | length > 0
+  # retries: 60  # Number of retries
+  # delay: 30    # Wait 30 seconds between retries
+  when: cluster_name in ['ocp-sno1', 'ocp-sno3', 'ocp3', 'ocp']
+  tags:
+    - post
+    - storage
+
+- name: Apply annotation to storage class nfs-sc as default
+  kubernetes.core.k8s:
+    host: "{{ cluster_api_url }}"
+    api_key: "{{ cluster_auth_token }}"
+    validate_certs: false
+    state: present
+    definition:
+      apiVersion: storage.k8s.io/v1
+      kind: StorageClass
+      metadata:
+        name: nfs-sc
+        annotations:
+          # The cluster "ocp" has ODF installed, so we do not set this annotation
+          storageclass.kubernetes.io/is-default-class: "{{ 'false' if cluster_name == 'ocp' else 'true' }}"
+  when:
+    - nfs_sc_info.resources is defined and nfs_sc_info.resources | length > 0
+  failed_when: false
+  tags:
+    - post
+    - storage

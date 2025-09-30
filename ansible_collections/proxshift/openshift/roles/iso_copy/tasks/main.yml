@@ -1,0 +1,175 @@
+---
+# Main tasks for iso_copy role
+# Dynamically mount SMB/NFS shares and copy ISO files
+
+- name: Validate required parameters
+  ansible.builtin.fail:
+    msg: "{{ item.msg }}"
+  when: item.condition
+  loop:
+    - condition: "{{ iso_source_file is not defined or iso_source_file == '' }}"
+      msg: "iso_source_file is required"
+    - condition: "{{ iso_destination_path is not defined or iso_destination_path == '' }}"
+      msg: "iso_destination_path is required"
+    - condition: "{{ iso_protocol not in ['smb', 'cifs', 'nfs', 'file'] }}"
+      msg: "Unsupported protocol '{{ iso_protocol }}'. Supported: smb, cifs, nfs, file"
+    - condition: "{{ iso_protocol in ['smb', 'cifs'] and (iso_mount_user is not defined or iso_mount_password is not defined) }}"
+      msg: "iso_mount_user and iso_mount_password are required for SMB/CIFS mounts"
+  no_log: true  # Prevent credential exposure in logs
+  tags:
+    - iso_copy
+    - validation
+
+- name: Check if source ISO file exists
+  ansible.builtin.stat:
+    path: "{{ iso_source_file }}"
+  register: iso_source_stat
+  tags:
+    - iso_copy
+    - validation
+
+- name: Fail if source ISO file does not exist
+  ansible.builtin.fail:
+    msg: "Source ISO file not found: {{ iso_source_file }}"
+  when: not iso_source_stat.stat.exists
+  tags:
+    - iso_copy
+    - validation
+
+- name: Create temporary mount point directory
+  ansible.builtin.file:
+    path: "{{ iso_mount_point }}"
+    state: directory
+    mode: '0755'
+  when: iso_protocol != 'file'
+  tags:
+    - iso_copy
+    - mount
+
+- name: Mount SMB/CIFS share (macOS)
+  ansible.builtin.command:
+    cmd: "mount_smbfs -o nobrowse //{{ iso_mount_user }}:{{ iso_mount_password }}@{{ iso_remote_host }}{{ iso_remote_path }} {{ iso_mount_point }}"
+  when: 
+    - iso_protocol in ['smb', 'cifs']
+    - ansible_os_family == 'Darwin'
+  register: smb_mount_result_macos
+  no_log: true
+  tags:
+    - iso_copy
+    - mount
+
+- name: Mount SMB/CIFS share (Linux)
+  ansible.builtin.command:
+    cmd: "mount -t cifs //{{ iso_remote_host }}{{ iso_remote_path }} {{ iso_mount_point }} -o username={{ iso_mount_user }},password={{ iso_mount_password }},uid={{ ansible_user_uid }},gid={{ ansible_user_gid }},nodev,nosuid"
+  when: 
+    - iso_protocol in ['smb', 'cifs']
+    - ansible_os_family != 'Darwin'
+  register: smb_mount_result_linux
+  no_log: true
+  tags:
+    - iso_copy
+    - mount
+
+- name: Mount NFS share (macOS)
+  ansible.builtin.command:
+    cmd: "mount_nfs -o rw,resvport {{ iso_remote_host }}:{{ iso_remote_path }} {{ iso_mount_point }}"
+  when: 
+    - iso_protocol == 'nfs'
+    - ansible_os_family == 'Darwin'
+  register: nfs_mount_result_macos
+  tags:
+    - iso_copy
+    - mount
+
+- name: Mount NFS share (Linux)
+  ansible.builtin.command:
+    cmd: "mount -t nfs {{ iso_remote_host }}:{{ iso_remote_path }} {{ iso_mount_point }} -o rw,sync,nodev,nosuid"
+  when: 
+    - iso_protocol == 'nfs'
+    - ansible_os_family != 'Darwin'
+  register: nfs_mount_result_linux
+  tags:
+    - iso_copy
+    - mount
+
+- name: Set destination directory for file protocol
+  ansible.builtin.set_fact:
+    iso_copy_destination_dir: "{{ iso_destination_path }}"
+  when: iso_protocol == 'file'
+  tags:
+    - iso_copy
+    - copy
+
+- name: Set destination directory for network protocols
+  ansible.builtin.set_fact:
+    iso_copy_destination_dir: "{{ iso_mount_point }}"
+  when: iso_protocol != 'file'
+  tags:
+    - iso_copy
+    - copy
+
+- name: Ensure destination directory exists
+  ansible.builtin.file:
+    path: "{{ iso_copy_destination_dir }}"
+    state: directory
+    mode: '0755'
+  when: iso_protocol == 'file'
+  tags:
+    - iso_copy
+    - copy
+
+- name: Copy ISO file to destination
+  ansible.builtin.copy:
+    src: "{{ iso_source_file }}"
+    dest: "{{ iso_copy_destination_dir }}/{{ iso_dest_filename }}"
+    mode: "{{ iso_file_mode }}"
+    remote_src: true
+  register: iso_copy_result
+  tags:
+    - iso_copy
+    - copy
+
+- name: Display copy result
+  ansible.builtin.debug:
+    msg: |
+      ISO copy completed successfully!
+      Source: {{ iso_source_file }}
+      Destination: {{ iso_copy_destination_dir }}/{{ iso_dest_filename }}
+      Protocol: {{ iso_protocol }}
+      {% if iso_protocol != 'file' %}Mount point: {{ iso_mount_point }}{% endif %}
+  when: iso_copy_result is succeeded
+  tags:
+    - iso_copy
+    - copy
+
+# Cleanup block - always runs to ensure mounts are cleaned up
+- name: Cleanup mount points
+  block:
+    - name: Unmount SMB/CIFS share
+      ansible.builtin.command:
+        cmd: "umount {{ iso_mount_point }}"
+      when: 
+        - iso_protocol in ['smb', 'cifs'] 
+        - (smb_mount_result_macos is defined and smb_mount_result_macos is succeeded) or (smb_mount_result_linux is defined and smb_mount_result_linux is succeeded)
+      ignore_errors: true
+      no_log: true  # Consistent with mount operation security
+
+    - name: Unmount NFS share
+      ansible.builtin.command:
+        cmd: "umount {{ iso_mount_point }}"
+      when: 
+        - iso_protocol == 'nfs'
+        - (nfs_mount_result_macos is defined and nfs_mount_result_macos is succeeded) or (nfs_mount_result_linux is defined and nfs_mount_result_linux is succeeded)
+      ignore_errors: true
+
+    - name: Remove temporary mount point
+      ansible.builtin.file:
+        path: "{{ iso_mount_point }}"
+        state: absent
+      when: iso_protocol != 'file'
+      ignore_errors: true
+
+  when: iso_protocol != 'file'
+  tags:
+    - iso_copy
+    - cleanup

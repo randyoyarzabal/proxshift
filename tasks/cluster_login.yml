@@ -1,0 +1,64 @@
+---
+# Reusable cluster login task
+# Can be used for newly provisioned clusters or existing clusters (like ACM hub)
+
+- name: "Display cluster login information"
+  ansible.builtin.debug:
+    msg: |-
+      Logging into OpenShift cluster...
+      Cluster: {{ login_cluster_name | default(cluster_name) }}
+      Version: {{ ocp_version }}
+      API URL: {{ login_cluster_api_url | default(cluster_api_url) }}
+      Auth method: {{ login_auth_method | default('kubeadmin') }}
+  tags:
+    - cluster_login
+    - eso
+    - gitops
+    - acm_import
+
+- name: "Login to OpenShift cluster: {{ login_cluster_name | default(cluster_name) }}"
+  ansible.builtin.include_role:
+    name: proxshift.openshift.oc_kubeadmin
+  vars:
+    oc_kubeadmin_cluster_name: "{{ login_cluster_name | default(cluster_name) }}"
+    oc_kubeadmin_cluster_api_url: "{{ login_cluster_api_url | default(cluster_api_url) }}"
+    oc_kubeadmin_auth_method: "{{ login_auth_method | default('kubeadmin') }}"
+  tags:
+    - cluster_login
+    - eso
+    - gitops
+    - acm_import
+
+- name: "Verify cluster login success"
+  ansible.builtin.debug:
+    msg: |-
+      {% if oc_kubeadmin_value_return is defined and oc_kubeadmin_value_return | length > 0 %}
+      Successfully logged into cluster: {{ login_cluster_name | default(cluster_name) }}
+      Version: {{ ocp_version }}
+      Authentication token obtained
+      Ready for cluster operations
+      {% else %}
+      Login failed for cluster: {{ login_cluster_name | default(cluster_name) }}
+      Version: {{ ocp_version }}
+      Check cluster status and credentials
+      {% endif %}
+  tags:
+    - cluster_login
+    - eso
+    - gitops
+    - acm_import
+
+# Set a fact to indicate successful login for downstream tasks
+- name: "Set cluster login status"
+  ansible.builtin.set_fact:
+    cluster_login_successful: "{{ oc_kubeadmin_value_return is defined and oc_kubeadmin_value_return | length > 0 }}"
+    cluster_auth_token: "{{ oc_kubeadmin_value_return | default('') }}"
+  no_log: true  # Prevent authentication token exposure in logs
+  tags:
+    - cluster_login
+    - eso
+    - gitops
+    - acm_import
+
+# The oc_kubeadmin_value_return variable will contain the kubeadmin api-key for the cluster
+# This can be used by subsequent tasks that need cluster authentication

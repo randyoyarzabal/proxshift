@@ -1,0 +1,152 @@
+---
+# Create OpenShift bootable ISO image
+# This task file handles ISO creation only, separate from manifest generation
+
+- name: "Display ISO creation preparation"
+  ansible.builtin.debug:
+    msg: |-
+      Preparing to create bootable ISO image
+      Cluster: {{ cluster_name }}
+      Version: {{ ocp_version }}
+      Install directory: {{ ocp_install_dir }}
+      Target ISO: {{ ocp_iso_image }}
+      
+      Requirements:
+      - Manifest files must exist (install-config.yaml, agent-config.yaml)
+      - OpenShift installer must be available
+  tags:
+    - create_iso
+
+- name: "Verify install directory exists: {{ ocp_install_dir }}"
+  ansible.builtin.stat:
+    path: "{{ ocp_install_dir }}"
+  register: install_dir_stat
+  tags:
+    - create_iso
+
+- name: "Fail if install directory does not exist"
+  ansible.builtin.fail:
+    msg: |
+      Install directory '{{ ocp_install_dir }}' does not exist.
+      
+      You must generate manifests first:
+        - Run with 'manifests' tag: --tags=manifests
+        - Or use ps.generate_manifests function
+        - Or use ps.provision for full workflow
+  when: not install_dir_stat.stat.exists
+  tags:
+    - create_iso
+
+- name: "Verify install-config.yaml exists"
+  ansible.builtin.stat:
+    path: "{{ ocp_install_dir }}/install-config.yaml"
+  register: install_config_stat
+  tags:
+    - create_iso
+
+- name: "Verify agent-config.yaml exists"
+  ansible.builtin.stat:
+    path: "{{ ocp_install_dir }}/agent-config.yaml"
+  register: agent_config_stat
+  tags:
+    - create_iso
+
+- name: "Fail if install-config.yaml is missing"
+  ansible.builtin.fail:
+    msg: |
+      Required manifest file 'install-config.yaml' not found in {{ ocp_install_dir }}.
+      
+      Generate manifests first:
+        - Run with 'manifests' tag: --tags=manifests  
+        - Or use ps.generate_manifests function
+  when: not install_config_stat.stat.exists
+  tags:
+    - create_iso
+
+- name: "Fail if agent-config.yaml is missing"
+  ansible.builtin.fail:
+    msg: |
+      Required manifest file 'agent-config.yaml' not found in {{ ocp_install_dir }}.
+      
+      Generate manifests first:
+        - Run with 'manifests' tag: --tags=manifests  
+        - Or use ps.generate_manifests function
+  when: not agent_config_stat.stat.exists
+  tags:
+    - create_iso
+
+- name: "Display ISO creation status"
+  ansible.builtin.debug:
+    msg: |-
+      Creating bootable ISO for cluster: {{ cluster_name }}
+      Version: {{ ocp_version }}
+      Source directory: {{ ocp_install_dir }}
+      ISO file: {{ ocp_iso_image }}
+      
+      Requirements:
+      - Manifest files exist (install-config.yaml, agent-config.yaml)
+      - OpenShift installer available
+  tags:
+    - create_iso
+
+- name: "Create boot image for the cluster: {{ cluster_name }}"
+  ansible.builtin.command:
+    cmd: "openshift-install agent create image --dir={{ ocp_install_dir }}"
+  register: create_iso_result
+  retries: 10
+  until: create_iso_result is succeeded
+  delay: 10
+  tags:
+    - create_iso
+
+- name: "Copy boot image to remote share"
+  ansible.builtin.include_role:
+    name: proxshift.openshift.iso_copy
+  vars:
+    iso_source_file: "{{ ocp_install_dir }}/agent.x86_64.iso"
+    iso_destination_path: "{{ iso_boot_path }}"
+    iso_destination_filename: "{{ cluster_name }}-agent.x86_64.iso"
+    iso_mount_user: "{{ iso_path_user | default(omit) }}"
+    iso_mount_password: "{{ iso_path_pass | default(omit) }}"
+  when: create_iso_result is succeeded
+  tags:
+    - create_iso
+
+- name: "Create marker file cluster provisioned"
+  ansible.builtin.file:
+    path: "{{ cluster_marker }}"
+    state: touch
+    mode: '0644'
+  when: create_iso_result is succeeded and (force_install | bool)
+  tags:
+    - create_iso
+
+- name: "Write cluster provisioned timestamp"
+  ansible.builtin.copy:
+    content: "Cluster provisioned at {{ ansible_date_time.iso8601 }}"
+    dest: "{{ cluster_marker }}"
+    mode: '0644'
+  when: create_iso_result is succeeded and (not is_cluster_provisioned or force_install)
+  tags:
+    - create_iso
+
+- name: "Display ISO creation completion"
+  ansible.builtin.debug:
+    msg: |-
+      ✅ ISO creation completed successfully!
+      Cluster: {{ cluster_name }}
+      Version: {{ ocp_version }}
+      Generated ISO: {{ ocp_iso_image }}
+      Install directory: {{ ocp_install_dir }}
+      
+      Generated files:
+      - Bootable ISO image: agent.x86_64.iso
+      - Based on manifests: install-config.yaml, agent-config.yaml
+      
+      Next steps:
+      - ISO has been copied to remote share: {{ iso_boot_path }}
+      - Continue with ps.provision for full deployment automation
+  when: create_iso_result is succeeded
+  tags:
+    - create_iso
+

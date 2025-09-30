@@ -1,0 +1,29 @@
+---
+galaxy_info:
+  author: ProxShift
+  description: Role for copying ISO files to remote SMB/NFS shares
+  company: ProxShift
+  license: MIT
+  min_ansible_version: "2.9"
+  platforms:
+    - name: EL
+      versions:
+        - "8"
+        - "9"
+    - name: Ubuntu
+      versions:
+        - "focal"
+        - "jammy"
+    - name: Fedora
+      versions:
+        - "36"
+        - "37"
+        - "38"
+  galaxy_tags:
+    - iso
+    - copy
+    - mount
+    - smb
+    - nfs
+
+dependencies: []

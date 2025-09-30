@@ -1,0 +1,41 @@
+---
+argument_specs:
+  main:
+    description: "Authenticate to OpenShift cluster using HashiCorp Vault credentials"
+    options:
+      cluster_auth_vault:
+        description: "HashiCorp Vault connection details"
+        type: dict
+        required: true
+        options:
+          address:
+            description: "Vault server URL"
+            type: str
+            required: true
+          token:
+            description: "Vault authentication token"
+            type: str
+            required: true
+          path:
+            description: "Vault path where cluster credentials are stored"
+            type: str
+            required: true
+          ca_cert:
+            description: "Path to CA certificate for Vault SSL verification"
+            type: str
+          skip_verify:
+            description: "Skip SSL certificate verification"
+            type: str
+            default: "true"
+      cluster_auth_cluster_name:
+        description: "Name of the OpenShift cluster"
+        type: str
+        required: true
+      cluster_auth_validate_certs:
+        description: "Validate SSL certificates for OpenShift API"
+        type: bool
+        default: false
+      cluster_auth_verbose:
+        description: "Enable verbose output with cluster information"
+        type: bool
+        default: false

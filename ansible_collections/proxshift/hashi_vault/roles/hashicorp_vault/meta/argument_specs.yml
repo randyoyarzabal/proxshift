@@ -1,0 +1,40 @@
+---
+argument_specs:
+  main:
+    description: "Retrieve secrets from HashiCorp Vault"
+    options:
+      hashicorp_vault_api:
+        description: "Vault API connection details"
+        type: dict
+        required: true
+        options:
+          url:
+            description: "Vault server URL"
+            type: str
+            required: true
+          token:
+            description: "Vault authentication token"
+            type: str
+            required: true
+      hashicorp_vault_secrets:
+        description: "List of secrets to retrieve"
+        type: list
+        elements: dict
+        required: true
+        options:
+          name:
+            description: "Variable name to store secret"
+            type: str
+            required: true
+          path:
+            description: "Vault secret path"
+            type: str
+            required: true
+          key:
+            description: "Secret key within path"
+            type: str
+            required: true
+      hashicorp_vault_output_var:
+        description: "Variable name to store all retrieved secrets"
+        type: str
+        default: "vault_values"

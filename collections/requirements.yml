@@ -1,0 +1,23 @@
+---
+collections:
+  # ProxShift collections (local development)
+  - name: ./ansible_collections/proxshift/openshift
+    type: dir
+  - name: ./ansible_collections/proxshift/hashi_vault
+    type: dir
+  - name: ./ansible_collections/proxshift/proxmox
+    type: dir
+
+  # External collections
+  - name: community.general
+    version: ">=8.0.0"
+  - name: community.proxmox
+    version: ">=1.0.0" 
+  - name: kubernetes.core
+    version: ">=3.0.0"
+  - name: ansible.posix
+    version: ">=1.0.0"
+  - name: community.hashi_vault
+    version: ">=6.0.0"
+  - name: community.okd
+    version: ">=3.0.0"

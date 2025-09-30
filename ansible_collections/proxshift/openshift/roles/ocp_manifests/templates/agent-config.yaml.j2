@@ -1,0 +1,46 @@
+---
+apiVersion: v1alpha1
+kind: AgentConfig
+metadata:
+  name: {{ cluster_name }}
+rendezvousIP: {{ hostvars[groups[cluster_name][0]]['base_ip'] }}
+hosts:
+{% set base_ip_parts = hostvars[groups[cluster_name][0]]['base_ip'].split('.') %}
+{% set ip_base = base_ip_parts[0] + '.' + base_ip_parts[1] + '.' + base_ip_parts[2] + '.' %}
+{% set start_ip = base_ip_parts[3] | int %}
+{% set master_count = 1 if hostvars[groups[cluster_name][0]]['cluster_type'] == 'sno' else 3 %}
+{% for host in groups[cluster_name] %}
+  - hostname: {{ host }}
+    role: {{ 'master' if loop.index <= master_count else 'worker' }}
+    interfaces:
+      - name: {{ network_defaults.interface_name }}
+        macAddress: {{ hostvars[host]['nics']['net0']['mac'] }}
+{% if hostvars[host].get('wwn') %}
+    rootDeviceHints:
+      wwn: '{{ hostvars[host]['wwn'] }}'
+{% endif %}
+    networkConfig:
+      interfaces:
+        - name: {{ network_defaults.interface_name }}
+          type: ethernet
+          state: up
+          mac-address: {{ hostvars[host]['nics']['net0']['mac'] }}
+          ipv4:
+            enabled: true
+            address:
+              - ip: {{ ip_base }}{{ start_ip + loop.index0 }}
+                prefix-length: {{ network_defaults.subnet.split('/')[1] }}
+            dhcp: false
+      dns-resolver:
+        config:
+          server:
+{% for dns in network_defaults.dns_servers %}
+            - {{ dns }}
+{% endfor %}
+      routes:
+        config:
+          - destination: 0.0.0.0/0
+            next-hop-address: {{ network_defaults.gateway }}
+            next-hop-interface: {{ network_defaults.interface_name }}
+            table-id: 254
+{% endfor %}

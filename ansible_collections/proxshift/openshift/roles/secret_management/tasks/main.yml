@@ -1,0 +1,102 @@
+---
+# Backup and restore OpenShift secrets
+
+- name: "Validate required variables"
+  ansible.builtin.assert:
+    that:
+      - secret_management_cluster is defined
+      - secret_management_cluster.api_host is defined
+      - secret_management_cluster.api_key is defined
+      - secret_management_backup_dir is defined
+    fail_msg: "Required variables missing. Check meta/argument_specs.yml for interface."
+
+- name: "Ensure backup directory exists"
+  ansible.builtin.file:
+    path: "{{ secret_management_backup_dir }}"
+    state: directory
+    mode: '0750'
+  tags:
+    - backup
+    - restore
+
+- name: "Backup secrets to local files"
+  kubernetes.core.k8s_info:
+    host: "{{ secret_management_cluster.api_host }}"
+    api_key: "{{ secret_management_cluster.api_key }}"
+    validate_certs: "{{ secret_management_cluster.validate_certs | default(false) }}"
+    api_version: v1
+    kind: Secret
+    name: "{{ item.name }}"
+    namespace: "{{ item.namespace }}"
+  loop: "{{ secret_management_secrets }}"
+  register: _secret_management_backups
+  tags:
+    - backup
+
+- name: "Write secret YAML files to backup directory"
+  ansible.builtin.copy:
+    content: >-
+      {{
+        (_secret_management_backups.results[item.0].resources[0]
+          | combine({
+              'metadata': (_secret_management_backups.results[item.0].resources[0].metadata
+                | dict2items
+                | rejectattr('key', 'in', ['uid', 'resourceVersion', 'creationTimestamp', 'managedFields'])
+                | list
+                | items2dict)
+            })
+          | to_nice_yaml)
+      }}
+    dest: >-
+      {{ secret_management_backup_dir }}/{{
+      secret_management_secrets[item.0].namespace }}-{{
+      secret_management_secrets[item.0].name }}.yaml
+    mode: '0640'
+  with_indexed_items: "{{ secret_management_secrets }}"
+  when: 
+    - _secret_management_backups.results[item.0].resources | length > 0
+    - secret_management_operation in ['backup', 'both']
+  tags:
+    - backup
+
+- name: "Find existing backup secret files"
+  ansible.builtin.find:
+    paths: "{{ secret_management_backup_dir }}"
+    patterns: '*.yaml'
+  register: _secret_management_found_files
+  tags:
+    - restore
+
+- name: "Ensure target namespaces exist before restore"
+  kubernetes.core.k8s:
+    host: "{{ secret_management_cluster.api_host }}"
+    api_key: "{{ secret_management_cluster.api_key }}"
+    validate_certs: "{{ secret_management_cluster.validate_certs | default(false) }}"
+    api_version: v1
+    kind: Namespace
+    name: "{{ item }}"
+    state: present
+  loop: "{{ secret_management_secrets | map(attribute='namespace') | unique | list }}"
+  when: secret_management_operation in ['restore', 'both']
+  tags:
+    - restore
+
+- name: "Restore secrets from backup files"
+  kubernetes.core.k8s:
+    host: "{{ secret_management_cluster.api_host }}"
+    api_key: "{{ secret_management_cluster.api_key }}"
+    validate_certs: "{{ secret_management_cluster.validate_certs | default(false) }}"
+    state: present
+    src: "{{ item.path }}"
+  loop: "{{ _secret_management_found_files.files }}"
+  when: secret_management_operation in ['restore', 'both']
+  tags:
+    - restore
+
+- name: "Show operation summary"
+  ansible.builtin.debug:
+    msg: >-
+      {{ secret_management_operation | title }} operation completed for 
+      {{ secret_management_secrets | length }} secrets in 
+      {{ secret_management_backup_dir }}
+  when: secret_management_verbose | default(false)

@@ -1,0 +1,10 @@
+---
+# VM Forge Configuration for Rocky Linux VM deployment using enhanced proxshift.proxmox.proxmox_vm role
+
+# Proxmox Configuration
+proxmox_api_host: pve2
+# API credentials are defined in secrets.yaml
+
+# VM Defaults
+proxmox_vm_force: false
+proxmox_vm_timeout: 300

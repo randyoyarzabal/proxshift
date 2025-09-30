@@ -1,0 +1,198 @@
+# Prepare ACM for joining the newly created cluster
+
+- name: Assert required variables are defined for acm_import role
+  vars:
+    acm_import_required_vars:
+      - acm_import_enabled
+      - acm_import_hub_cluster
+      - acm_import_cluster
+      - acm_import_hub_cluster_api_url
+      - acm_import_cluster_api_url
+      - acm_import_output_dir
+      - ocp_install_dir
+  ansible.builtin.assert:
+    that:
+      - vars[item] is defined
+    fail_msg: "Required variable '{{ item }}' is not defined!"
+  loop: "{{ acm_import_required_vars }}"
+  loop_control:
+    label: "{{ item }}"
+  tags:
+    - acm_import
+
+- name: Prepare ACM for join
+  when: acm_import_enabled and acm_import_hub_cluster != acm_import_cluster
+  tags:
+    - acm_import
+  block:
+    - name: 'Login to Hub Cluster: {{ acm_import_hub_cluster }}'
+      ansible.builtin.include_tasks:
+        file: "{{ playbook_dir }}/tasks/cluster_login.yml"
+      vars:
+        login_cluster_name: "{{ acm_import_hub_cluster }}"
+        login_cluster_api_url: "{{ acm_import_hub_cluster_api_url }}"
+        login_auth_method: "kubeadmin"
+      tags:
+        - vm_delete
+
+    - name: Set fact acm_import_api_key
+      ansible.builtin.set_fact:
+        acm_import_api_key: "{{ cluster_auth_token }}"
+      tags:
+        - vm_delete
+
+
+    - name: "Hub cluster: delete ManagedCluster resource: {{ acm_import_cluster }}"
+      kubernetes.core.k8s:
+        host: "{{ acm_import_hub_cluster_api_url }}"
+        api_key: "{{ acm_import_api_key }}"
+        state: absent
+        validate_certs: false
+        ca_cert: null
+        api_version: cluster.open-cluster-management.io/v1
+        kind: ManagedCluster
+        name: '{{ acm_import_cluster }}'
+      ignore_errors: true
+      tags:
+        - vm_delete
+
+    - name: "Hub cluster: delete the OpenShift namespace: {{ acm_import_cluster }}"
+      kubernetes.core.k8s:
+        host: "{{ acm_import_hub_cluster_api_url }}"
+        api_key: "{{ acm_import_api_key }}"
+        validate_certs: false
+        ca_cert: null
+        api_version: v1
+        state: absent
+        kind: Namespace
+        name: '{{ acm_import_cluster }}'
+      ignore_errors: true
+      tags:
+        - vm_delete
+
+    - name: "Hub cluster: wait for namespace to be deleted: {{ acm_import_cluster }}"
+      kubernetes.core.k8s_info:
+        host: "{{ acm_import_hub_cluster_api_url }}"
+        api_key: "{{ acm_import_api_key }}"
+        validate_certs: false
+        ca_cert: null
+        api_version: v1
+        kind: Namespace
+        name: '{{ acm_import_cluster }}'
+      register: ns_info
+      until: ns_info.resources | default([]) | length == 0
+      retries: 5
+      delay: 2
+      failed_when: false
+      ignore_errors: true
+      tags:
+        - vm_delete
+
+    - name: Render acm_join.yaml from template
+      ansible.builtin.template:
+        src: 'templates/acm_join.j2'
+        dest: '{{ acm_import_output_dir }}/acm_join.yaml'
+        mode: '0600'
+
+    - name: "Hub cluster: apply ManagedCluster resource: {{ acm_import_cluster }}"
+      kubernetes.core.k8s:
+        host: "{{ acm_import_hub_cluster_api_url }}"
+        api_key: "{{ acm_import_api_key }}"
+        state: present
+        validate_certs: false
+        api_version: cluster.open-cluster-management.io/v1
+        src: '{{ acm_import_output_dir }}/acm_join.yaml'
+
+    - name: Label ManagedCluster (ocp-sno3) with apply-certs=true
+      kubernetes.core.k8s:
+        host: "{{ acm_import_hub_cluster_api_url }}"
+        api_key: "{{ acm_import_api_key }}"
+        state: present
+        validate_certs: false
+        api_version: cluster.open-cluster-management.io/v1
+        kind: ManagedCluster
+        name: ocp-sno3
+        merge_type: merge
+        definition:
+          metadata:
+            labels:
+              apply-certs: "true"
+      # when: acm_import_cluster in ['ocp-sno1','ocp-sno3', 'ocp3', 'ocp']
+
+    - name: Label ManagedCluster (all) with cluster-name={{ acm_import_cluster }}
+      kubernetes.core.k8s:
+        host: "{{ acm_import_hub_cluster_api_url }}"
+        api_key: "{{ acm_import_api_key }}"
+        state: present
+        validate_certs: false
+        api_version: cluster.open-cluster-management.io/v1
+        kind: ManagedCluster
+        name: '{{ acm_import_cluster }}'
+        merge_type: merge
+        definition:
+          metadata:
+            labels:
+              cluster-name: '{{ acm_import_cluster }}'
+
+# Import the cluster to the hub cluster
+
+- name: ACM join the cluster
+  when: acm_import_import and acm_import_hub_cluster != acm_import_cluster
+  tags:
+    - acm_import
+  block:
+    - name: "Login to OpenShift hub cluster: {{ acm_import_hub_cluster }}"
+      ansible.builtin.include_tasks:
+        file: "{{ playbook_dir }}/tasks/cluster_login.yml"
+      vars:
+        login_cluster_name: "{{ acm_import_hub_cluster }}"
+        login_cluster_api_url: "{{ acm_import_hub_cluster_api_url }}"
+        login_auth_method: "kubeadmin"
+
+    - name: Get OpenShift hub import secrets
+      kubernetes.core.k8s_info:
+        host: "{{ acm_import_hub_cluster_api_url }}"
+        api_key: "{{ cluster_auth_token }}"
+        validate_certs: false
+        api_version: v1
+        kind: Secret
+        name: "{{ acm_import_cluster }}-import"
+        namespace: "{{ acm_import_cluster }}"
+      register: secret_info
+
+    - name: Decode CRDs secret to file
+      ansible.builtin.copy:
+        content: "{{ secret_info.resources[0].data['crds.yaml'] | b64decode }}"
+        dest: "{{ ocp_install_dir }}/crds.yaml"
+        mode: '0600'
+
+    - name: Decode import to file
+      ansible.builtin.copy:
+        content: "{{ secret_info.resources[0].data['import.yaml'] | b64decode }}"
+        dest: "{{ ocp_install_dir }}/import.yaml"
+        mode: '0600'
+
+    # Login to the newly created OpenShift cluster using reusable cluster_login task
+    - name: "Login to the newly created OpenShift cluster: {{ acm_import_cluster }}"
+      ansible.builtin.include_tasks:
+        file: "{{ playbook_dir }}/tasks/cluster_login.yml"
+      vars:
+        login_cluster_name: "{{ acm_import_cluster }}"
+        login_cluster_api_url: "{{ acm_import_cluster_api_url }}"
+        login_auth_method: "kubeadmin"
+
+    - name: Apply CRDs
+      kubernetes.core.k8s:
+        host: "{{ acm_import_cluster_api_url }}"
+        api_key: "{{ cluster_auth_token }}"
+        validate_certs: false
+        state: present
+        src: "{{ ocp_install_dir }}/crds.yaml"
+
+    - name: Apply import
+      kubernetes.core.k8s:
+        host: "{{ acm_import_cluster_api_url }}"
+        api_key: "{{ cluster_auth_token }}"
+        validate_certs: false
+        state: present
+        src: "{{ ocp_install_dir }}/import.yaml"

@@ -1,0 +1,42 @@
+---
+- hosts: "{{ target | default('virtual_machines') }}"
+  gather_facts: false
+  collections:
+    - community.general
+    - proxshift.proxmox
+  vars_files: 
+    - vars/vmforge_config.yaml
+    - vars/secrets.yaml
+  vars:
+    proxmox_vm_api:
+      host: "{{ proxmox_api_host }}"
+      user: "{{ proxmox_api_user }}"
+      password: "{{ proxmox_api_pass }}"
+    proxmox_vm_state: present
+  pre_tasks:
+    - name: Debug variables
+      ansible.builtin.debug:
+        msg:
+          - "proxmox_api_host: {{ proxmox_api_host | default('NOT DEFINED') }}"
+          - "proxmox_api_user: {{ proxmox_api_user | default('NOT DEFINED') }}"
+          - "proxmox_api_pass: {{ 'SET' if proxmox_api_pass is defined and proxmox_api_pass|length > 0 else 'NOT SET' }}"
+          - "qcow2_image: {{ proxmox_vm_config.qcow2_image | default('NOT DEFINED') }}"
+          - "node: {{ proxmox_vm_config.node | default('NOT DEFINED') }}"
+      tags:
+        - always
+
+
+    - name: Assert that vars required for qcow2 deployment exist
+      ansible.builtin.assert:
+        that:
+          - proxmox_api_host is defined 
+          - proxmox_api_user is defined 
+          - proxmox_api_pass is defined 
+          - proxmox_api_host|length > 0
+          - proxmox_api_user|length > 0
+          - proxmox_api_pass|length > 0
+      tags:
+        - always
+
+  roles:
+    - proxshift.proxmox.proxmox_vm

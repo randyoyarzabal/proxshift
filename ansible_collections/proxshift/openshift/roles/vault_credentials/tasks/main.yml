@@ -1,0 +1,54 @@
+---
+# Store OpenShift cluster credentials in HashiCorp Vault
+
+- name: "Validate required variables"
+  ansible.builtin.assert:
+    that:
+      - vault_credentials_vault is defined
+      - vault_credentials_vault.address is defined
+      - vault_credentials_vault.token is defined
+      - vault_credentials_vault.path is defined
+      - vault_credentials_cluster_name is defined
+      - vault_credentials_cluster_api_url is defined
+      - vault_credentials_ocp_install_dir is defined
+    fail_msg: "Required variables missing. Check meta/argument_specs.yml for interface."
+
+- name: "Verify required credential files exist"
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  register: _vault_credentials_file_check
+  loop:
+    - "{{ vault_credentials_ocp_install_dir }}/auth/kubeconfig"
+    - "{{ vault_credentials_ocp_install_dir }}/auth/kubeadmin-password"
+  failed_when: not _vault_credentials_file_check.stat.exists
+
+- name: "Read credential files"
+  ansible.builtin.set_fact:
+    _vault_credentials_kubeconfig: "{{ lookup('file', vault_credentials_ocp_install_dir + '/auth/kubeconfig') }}"
+    _vault_credentials_kubeadmin: "{{ lookup('file', vault_credentials_ocp_install_dir + '/auth/kubeadmin-password') }}"
+  no_log: true  # Prevent credential content exposure in logs
+
+- name: "Store cluster credentials in Vault"
+  community.hashi_vault.vault_write:
+    url: "{{ vault_credentials_vault.address }}"
+    token: "{{ vault_credentials_vault.token }}"
+    path: "{{ vault_credentials_vault.path }}/{{ vault_credentials_cluster_name }}"
+    ca_cert: "{{ vault_credentials_vault.ca_cert | default(omit) }}"
+    data:
+      data:
+        api: "{{ vault_credentials_cluster_api_url }}"
+        kubeconfig: "{{ _vault_credentials_kubeconfig }}"
+        kubeadmin: "{{ _vault_credentials_kubeadmin }}"
+  environment:
+    VAULT_SKIP_VERIFY: "{{ vault_credentials_vault.skip_verify | default('true') }}"
+  register: _vault_credentials_result
+  changed_when: _vault_credentials_result.data is changed
+  failed_when: >
+    _vault_credentials_result.failed or 
+    _vault_credentials_result.data is not defined
+  no_log: true  # Prevent vault token and credential exposure in logs
+
+- name: "Show credential storage result"
+  ansible.builtin.debug:
+    msg: "Successfully stored credentials for cluster '{{ vault_credentials_cluster_name }}' in Vault"
+  when: vault_credentials_verbose | default(false)

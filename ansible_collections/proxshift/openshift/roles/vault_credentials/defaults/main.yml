@@ -1,0 +1,5 @@
+---
+# Default values for vault_credentials role
+
+# Verbose output
+vault_credentials_verbose: false

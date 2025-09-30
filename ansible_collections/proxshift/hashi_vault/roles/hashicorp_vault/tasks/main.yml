@@ -1,0 +1,54 @@
+---
+# HashiCorp Vault secrets retrieval role with clean interface
+
+- name: "Validate required variables"
+  ansible.builtin.assert:
+    that:
+      - hashicorp_vault_api is defined
+      - hashicorp_vault_api.url is defined
+      - hashicorp_vault_api.token is defined
+      - hashicorp_vault_secrets is defined
+      - hashicorp_vault_secrets | length > 0
+    fail_msg: "Required variables missing. Check meta/argument_specs.yml for interface."
+  tags:
+    - always
+
+- name: "Initialize vault values dictionary"
+  ansible.builtin.set_fact:
+    _vault_retrieved_secrets: {}
+  tags:
+    - always
+
+- name: "Retrieve secrets from HashiCorp Vault"
+  ansible.builtin.uri:
+    url: "{{ hashicorp_vault_api.url }}/v1/{{ secret.path }}"
+    method: GET
+    headers:
+      X-Vault-Token: "{{ hashicorp_vault_api.token }}"
+    return_content: yes
+    status_code: 200
+  register: _vault_response
+  loop: "{{ hashicorp_vault_secrets }}"
+  loop_control:
+    loop_var: secret
+    label: "{{ secret.name }}: {{ secret.path }}"
+  no_log: true  # Prevent vault token exposure in logs
+  tags:
+    - always
+
+- name: "Extract secret values and store in variables"
+  ansible.builtin.set_fact:
+    _vault_retrieved_secrets: "{{ _vault_retrieved_secrets | combine({item.secret.name: item.json.data.data[item.secret.key]}) }}"
+  loop: "{{ _vault_response.results }}"
+  loop_control:
+    label: "{{ item.secret.name }}"
+  no_log: true  # Prevent secret values exposure in logs
+  tags:
+    - always
+
+- name: "Set output variable with all retrieved secrets"
+  ansible.builtin.set_fact:
+    "{{ hashicorp_vault_output_var }}": "{{ _vault_retrieved_secrets }}"
+  no_log: true  # Prevent secret values exposure in logs
+  tags:
+    - always

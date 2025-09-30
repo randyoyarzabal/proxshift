@@ -1,0 +1,29 @@
+---
+argument_specs:
+  main:
+    description: "Retrieve OpenShift cluster credentials from HashiCorp Vault"
+    options:
+      vault_addr:
+        description: "HashiCorp Vault server URL"
+        type: str
+        required: true
+      vault_token:
+        description: "HashiCorp Vault authentication token"
+        type: str
+        required: true
+      vault_path:
+        description: "Vault path where cluster credentials are stored"
+        type: str
+        required: true
+      oc_kubeadmin_cluster_name:
+        description: "Name of the OpenShift cluster to retrieve credentials for"
+        type: str
+        required: true
+      vault_ca_cert:
+        description: "Path to Vault CA certificate for TLS verification"
+        type: str
+        required: false
+      verbose_enabled:
+        description: "Enable verbose output including node list"
+        type: bool
+        default: false

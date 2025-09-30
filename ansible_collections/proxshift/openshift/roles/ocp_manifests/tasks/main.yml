@@ -1,0 +1,76 @@
+---
+# OpenShift manifests generation role with clean interface
+
+- name: "Validate required variables"
+  ansible.builtin.assert:
+    that:
+      - ocp_manifests_cluster is defined
+      - ocp_manifests_cluster.name is defined
+      - ocp_manifests_network is defined
+      - ocp_manifests_network.subnet is defined
+      - ocp_manifests_network.gateway is defined
+      - ocp_manifests_network.dns_servers is defined
+      - ocp_manifests_nodes is defined
+      - ocp_manifests_nodes | length > 0
+      - ocp_manifests_credentials is defined
+      - ocp_manifests_credentials.pull_secret is defined
+      - ocp_manifests_credentials.ssh_key is defined
+      - ocp_manifests_output_dir is defined
+    fail_msg: "Required variables missing. Check meta/argument_specs.yml for interface."
+
+- name: "Merge configuration with defaults"
+  ansible.builtin.set_fact:
+    _ocp_manifests_final_cluster: "{{ ocp_manifests_defaults.cluster | combine(ocp_manifests_cluster, recursive=true) }}"
+    _ocp_manifests_final_network: "{{ ocp_manifests_defaults.network | combine(ocp_manifests_network, recursive=true) }}"
+
+- name: "Determine cluster type from node count"
+  ansible.builtin.set_fact:
+    _ocp_manifests_cluster_type: "{{ 'sno' if (ocp_manifests_nodes | length == 1) else 'multi_node' }}"
+
+- name: "Create output directory"
+  ansible.builtin.file:
+    path: "{{ ocp_manifests_output_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: "Generate install-config.yaml from universal template"
+  ansible.builtin.template:
+    src: 'install-config.yaml.j2'
+    dest: "{{ ocp_manifests_output_dir }}/install-config.yaml"
+    mode: "{{ ocp_manifests_file_mode }}"
+  vars:
+    cluster_name: "{{ _ocp_manifests_final_cluster.name }}"
+    base_domain: "{{ _ocp_manifests_final_network.base_domain }}"
+    ocp_version: "{{ _ocp_manifests_final_cluster.version }}"
+    cluster_type: "{{ _ocp_manifests_cluster_type }}"
+    network_defaults: "{{ _ocp_manifests_final_network }}"
+    groups: 
+      "{{ _ocp_manifests_final_cluster.name }}": "{{ ocp_manifests_nodes | map(attribute='name') | list }}"
+    hostvars: "{{ ocp_manifests_nodes | items2dict(key_name='name', value_name=None) }}"
+    generate_install_files_pull_secret: "{{ ocp_manifests_credentials.pull_secret }}"
+    generate_install_files_ssh_key: "{{ ocp_manifests_credentials.ssh_key }}"
+    generate_install_files_cert_bundle: "{{ ocp_manifests_credentials.cert_bundle | default('') }}"
+
+- name: "Generate agent-config.yaml from universal template"
+  ansible.builtin.template:
+    src: 'agent-config.yaml.j2'
+    dest: "{{ ocp_manifests_output_dir }}/agent-config.yaml"
+    mode: "{{ ocp_manifests_file_mode }}"
+  vars:
+    cluster_name: "{{ _ocp_manifests_final_cluster.name }}"
+    cluster_type: "{{ _ocp_manifests_cluster_type }}"
+    network_defaults: "{{ _ocp_manifests_final_network }}"
+    groups: 
+      "{{ _ocp_manifests_final_cluster.name }}": "{{ ocp_manifests_nodes | map(attribute='name') | list }}"
+    hostvars: "{{ ocp_manifests_nodes | items2dict(key_name='name', value_name=None) }}"
+
+- name: "Create backup copies if enabled"
+  ansible.builtin.copy:
+    src: "{{ ocp_manifests_output_dir }}/{{ item }}"
+    dest: "{{ ocp_manifests_output_dir }}/{{ item }}.bak"
+    remote_src: true
+    mode: "{{ ocp_manifests_file_mode }}"
+  loop:
+    - install-config.yaml
+    - agent-config.yaml
+  when: ocp_manifests_backup

@@ -1,0 +1,79 @@
+---
+# Wait for OpenShift installation completion
+# This task file handles waiting for the installation process only
+
+- name: "Display installation wait information"
+  ansible.builtin.debug:
+    msg: |-
+      Waiting for OpenShift installation completion...
+      Cluster: {{ cluster_name }}
+      Version: {{ ocp_version }}
+      Install directory: {{ ocp_install_dir }}
+      Expected time: 45+ minutes
+      
+      Manual monitoring command:
+      openshift-install agent wait-for install-complete --dir={{ ocp_install_dir }} --log-level=debug
+  tags:
+    - install
+
+- name: Wait for OpenShift installation completion; this may take a while (45+ minutes)
+  ansible.builtin.command:
+    argv:
+      - openshift-install
+      - agent
+      - wait-for
+      - install-complete
+      - "--dir={{ ocp_install_dir }}"
+      - --log-level=info
+  register: install_output
+  until:
+    # Check if the installation is complete by looking for 'Cluster is installed' in the output
+    # Note: String is in stderr, but stdout may also contain it in the future.
+    - (install_output.stdout is defined and 'Cluster is installed' in install_output.stdout) or
+      (install_output.stderr is defined and 'Cluster is installed' in install_output.stderr)
+  retries: 60 # Retry up to 60 times if the installation is not complete
+  delay: 60  # Wait for 60 seconds between retries
+  changed_when:
+    - (install_output.stdout is defined and 'Cluster is installed' in install_output.stdout) or
+      (install_output.stderr is defined and 'Cluster is installed' in install_output.stderr)
+  ignore_errors: true  # Ignore errors to allow for debugging
+  tags:
+    - install
+
+# Check if the installation was successful by looking for a specific string in the output
+- name: Check installation status
+  ansible.builtin.assert:
+    that:
+      - (install_output.stdout is defined and 'Cluster is installed' in install_output.stdout) or
+        (install_output.stderr is defined and 'Cluster is installed' in install_output.stderr)
+    success_msg: "Cluster installed successfully!"
+    fail_msg: |-
+      Installation timed out after {{ 60 * 60 }} seconds.
+      
+      Troubleshooting:
+        - Check logs in: {{ ocp_install_dir }}
+        - Review agent.x86_64.iso boot process
+        - Verify network connectivity and DNS
+        - Check Proxmox VM console for errors
+  tags:
+    - install
+
+- name: "Display installation completion"
+  ansible.builtin.debug:
+    msg: |-
+      OpenShift installation completed successfully!
+      Cluster: {{ cluster_name }}
+      Version: {{ ocp_version }}
+      Duration: {{ install_output.delta | default('N/A') }}
+      
+      Generated files:
+        - {{ ocp_install_dir }}/auth/kubeconfig
+        - {{ ocp_install_dir }}/auth/kubeadmin-password
+      
+      Next steps:
+        - Credentials will be stored in Vault
+        - Cluster login will be established
+        - Post-installation tasks will begin
+  when: install_output is succeeded
+  tags:
+    - install
