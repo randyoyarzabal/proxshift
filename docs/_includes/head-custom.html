@@ -37,6 +37,17 @@
   border-color: rgba(46, 160, 67, 1);
 }
 
+.copy-btn.loading {
+  background: rgba(255, 193, 7, 0.8);
+  border-color: rgba(255, 193, 7, 1);
+  cursor: not-allowed;
+}
+
+.copy-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Enhanced midnight theme styling */
 body {
   background: linear-gradient(135deg, #0f1419 0%, #1a1e23 100%);
@@ -91,9 +102,25 @@ document.addEventListener('DOMContentLoaded', function() {
     const button = document.createElement('button');
     button.className = 'copy-btn';
     button.textContent = 'Copy';
+    button.setAttribute('aria-label', 'Copy code to clipboard');
+    button.setAttribute('title', 'Copy code to clipboard');
+    button.type = 'button';
+    
+    // Add keyboard support
+    button.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        button.click();
+      }
+    });
     
     button.addEventListener('click', function() {
       const code = block.textContent;
+      
+      // Show loading state
+      button.textContent = 'Copying...';
+      button.classList.add('loading');
+      button.disabled = true;
       
       // Use modern clipboard API
       if (navigator.clipboard) {
@@ -117,6 +144,8 @@ document.addEventListener('DOMContentLoaded', function() {
   function showCopied(button) {
     button.textContent = 'Copied!';
     button.classList.add('copied');
+    button.classList.remove('loading');
+    button.disabled = false;
     setTimeout(function() {
       button.textContent = 'Copy';
       button.classList.remove('copied');
@@ -137,6 +166,10 @@ document.addEventListener('DOMContentLoaded', function() {
       showCopied(button);
     } catch (err) {
       console.error('Failed to copy text: ', err);
+      // Reset button state on error
+      button.textContent = 'Copy';
+      button.classList.remove('loading');
+      button.disabled = false;
     }
     
     document.body.removeChild(textArea);

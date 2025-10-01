@@ -82,16 +82,16 @@ ansible_collections/proxshift/
 │   │   ├── oc_kubeadmin/   # Kubeadmin authentication
 │   │   ├── ocp_manifests/  # OpenShift manifests
 │   │   └── secret_management/ # Secret operations
-│   └── README.md          # OpenShift collection docs
+│   └── readme.md          # OpenShift collection docs
 ├── hashi_vault/           # Vault integration
 │   ├── roles/
 │   │   └── hashicorp_vault/ # Secret retrieval
-│   └── README.md          # Vault collection docs
+│   └── readme.md          # Vault collection docs
 └── proxmox/               # Infrastructure management
     ├── roles/
     │   ├── proxmox_vm/     # VM lifecycle
     │   └── vm_lifecycle/   # VM operations
-    └── README.md          # Proxmox collection docs
+    └── readme.md          # Proxmox collection docs
 ```
 
 ### 3. Configuration Management
@@ -379,7 +379,7 @@ ansible_collections/proxshift/openshift/roles/custom_role/
 ├── tasks/main.yml
 ├── defaults/main.yml
 ├── meta/argument_specs.yml
-└── README.md
+└── readme.md
 
 # Or for Vault-related functionality:
 ansible_collections/proxshift/hashi_vault/roles/custom_vault_role/

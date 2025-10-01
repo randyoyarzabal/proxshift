@@ -97,6 +97,22 @@ ps.provision --help
 
 ### Step 3: Install OpenShift Tools
 
+#### OpenShift Installer Binary Naming Convention
+
+**Important**: ProxShift expects OpenShift installer binaries to be named with version suffixes and automatically creates symlinks for the Ansible process.
+
+**Required naming format**:
+
+```text
+openshift-install-{VERSION}
+```
+
+**Examples**:
+
+- `openshift-install-4.17.1`
+- `openshift-install-4.16.5`
+- `openshift-install-4.15.12`
+
 #### Download OpenShift Installer
 
 ```bash
@@ -107,17 +123,49 @@ mkdir -p ~/bin
 OCP_VERSION="4.17.1"
 curl -L "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${OCP_VERSION}/openshift-install-linux.tar.gz" | tar -xz -C ~/bin/
 
+# Rename to versioned format (REQUIRED)
+mv ~/bin/openshift-install ~/bin/openshift-install-${OCP_VERSION}
+
 # Download OpenShift CLI
 curl -L "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${OCP_VERSION}/openshift-client-linux.tar.gz" | tar -xz -C ~/bin/
 
 # Make executable and add to PATH
-chmod +x ~/bin/{openshift-install,oc}
+chmod +x ~/bin/{openshift-install-${OCP_VERSION},oc}
 echo 'export PATH="$HOME/bin:$PATH"' >> ~/.bashrc
 source ~/.bashrc
 
 # Verify installation
-openshift-install version
+~/bin/openshift-install-${OCP_VERSION} version
 oc version --client
+```
+
+#### How ProxShift Uses Versioned Binaries
+
+ProxShift automatically:
+
+1. **Detects the required version** from your cluster inventory (`ocp_version` field)
+2. **Looks for the versioned binary** at `{ocp_installer_path}/openshift-install-{version}`
+3. **Creates a symlink** from `openshift-install-{version}` → `openshift-install`
+4. **Uses the symlinked binary** for all Ansible operations
+
+**Example workflow**:
+
+```bash
+# Your inventory specifies: ocp_version: "4.17.1"
+# ProxShift looks for: /Users/royarzab/bin/openshift-install-4.17.1
+# ProxShift creates: /Users/royarzab/bin/openshift-install -> openshift-install-4.17.1
+# Ansible uses: openshift-install (the symlink)
+```
+
+**Multiple versions support**:
+
+```bash
+# You can have multiple versions installed simultaneously
+~/bin/openshift-install-4.16.5
+~/bin/openshift-install-4.17.1
+~/bin/openshift-install-4.18.0
+
+# ProxShift will symlink the correct version based on cluster configuration
 ```
 
 ## Configuration
@@ -147,6 +195,9 @@ network_defaults:
   interface_name: "eno1"                     # Network interface
   cluster_cidr: "10.128.0.0/14"            # Pod network
   service_cidr: "172.30.0.0/16"            # Service network
+
+# OpenShift installer binary location
+ocp_installer_path: "/usr/local/bin"        # Path where versioned binaries are stored
 
 # Proxmox configuration
 proxmox_api_user: "api-user@pve"            # Proxmox API user
@@ -456,6 +507,42 @@ tail -f ocp_install/cluster-name/.openshift_install.log
 # Verify network connectivity from VMs
 ```
 
+#### OpenShift Installer Binary Issues
+
+**Error**: `refusing to convert from file to symlink for /path/to/openshift-install`
+
+**Cause**: A file named `openshift-install` already exists instead of the expected versioned binary.
+
+**Solution**:
+
+```bash
+# Check what's at the installer path
+ls -la ~/bin/openshift-install*
+
+# If you have a file instead of versioned binaries:
+rm ~/bin/openshift-install  # Remove the file
+
+# Download and rename properly
+OCP_VERSION="4.17.1"
+curl -L "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${OCP_VERSION}/openshift-install-linux.tar.gz" | tar -xz -C ~/bin/
+mv ~/bin/openshift-install ~/bin/openshift-install-${OCP_VERSION}
+chmod +x ~/bin/openshift-install-${OCP_VERSION}
+```
+
+**Error**: `The OpenShift installer binary for version X.X.X does not exist`
+
+**Cause**: The versioned binary `openshift-install-{VERSION}` is missing.
+
+**Solution**:
+
+```bash
+# Download the specific version needed
+OCP_VERSION="4.17.1"  # Replace with your cluster's version
+curl -L "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${OCP_VERSION}/openshift-install-linux.tar.gz" | tar -xz -C ~/bin/
+mv ~/bin/openshift-install ~/bin/openshift-install-${OCP_VERSION}
+chmod +x ~/bin/openshift-install-${OCP_VERSION}
+```
+
 ## Next Steps
 
 1. **[Environment Variables](environment.md)** - Advanced configuration
@@ -465,4 +552,4 @@ tail -f ocp_install/cluster-name/.openshift_install.log
 
 ---
 
-**ProxShift** - Where Proxmox meets OpenShift ⚡
+**ProxShift** - Where Proxmox meets OpenShift

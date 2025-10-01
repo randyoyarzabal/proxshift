@@ -30,7 +30,7 @@
 
 # Check if a cluster exists by trying to login to the cluster
 - name: "Check if OpenShift cluster is provisioned with rescue block"
-  when: not force_install
+  when: not (force_install | default(false) | bool)
   block:
     - name: "Checking if OpenShift cluster is provisioned: {{ cluster_name }}"
       ansible.builtin.include_tasks:
@@ -50,8 +50,8 @@
 - name: "Check if cluster is live or force provision enabled"
   ansible.builtin.set_fact:
     is_cluster_provisioned: true
-  when: force_install or (cluster_auth_token is defined and cluster_auth_token | length > 0)
-  failed_when: not force_install and is_cluster_provisioned
+  when: (force_install | default(false) | bool) or (cluster_auth_token is defined and cluster_auth_token | length > 0)
+  failed_when: not (force_install | default(false) | bool) and is_cluster_provisioned
   tags:
     - provisioning_check
 
@@ -60,7 +60,7 @@
   ansible.builtin.meta: end_play
   when:
     - is_cluster_provisioned
-    - not force_install
+    - not (force_install | default(false) | bool)
   tags:
     - provisioning_check
 
@@ -68,7 +68,7 @@
   ansible.builtin.file:
     path: '{{ ocp_install_dir }}'
     state: absent
-  when: force_install | bool
+  when: (force_install | default(false) | bool)
   tags:
     - always
     - manifests  

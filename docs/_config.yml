@@ -36,4 +36,4 @@ sass:
 
 # Exclude from processing
 exclude:
-  - README.md
+  - readme.md

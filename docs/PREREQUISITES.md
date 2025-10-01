@@ -30,8 +30,8 @@ ProxShift automatically activates the virtual environment:
 ```bash
 # Simply source proxshift.sh
 source proxshift.sh
-# 🔧 Activating ProxShift virtual environment...
-# ✅ Virtual environment activated: Python 3.13.7
+# Activating ProxShift virtual environment...
+# Virtual environment activated: Python 3.13.7
 ```
 
 ## System Packages
@@ -71,6 +71,22 @@ sudo dnf install git
 
 ## OpenShift Tools
 
+### OpenShift Installer Binary Naming Convention
+
+**Critical**: ProxShift requires OpenShift installer binaries to follow a specific naming convention and automatically manages symlinks for version switching.
+
+**Required naming format**:
+
+```text
+openshift-install-{VERSION}
+```
+
+**Examples**:
+
+- `openshift-install-4.17.1`
+- `openshift-install-4.16.5`
+- `openshift-install-4.15.12`
+
 ### Download OpenShift Installer
 
 ```bash
@@ -81,17 +97,49 @@ mkdir -p ~/bin
 OCP_VERSION="4.17.1"
 curl -L "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${OCP_VERSION}/openshift-install-linux.tar.gz" | tar -xz -C ~/bin/
 
+# Rename to versioned format (REQUIRED for ProxShift)
+mv ~/bin/openshift-install ~/bin/openshift-install-${OCP_VERSION}
+
 # Download OpenShift CLI
 curl -L "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${OCP_VERSION}/openshift-client-linux.tar.gz" | tar -xz -C ~/bin/
 
 # Make executable and add to PATH
-chmod +x ~/bin/{openshift-install,oc}
+chmod +x ~/bin/{openshift-install-${OCP_VERSION},oc}
 echo 'export PATH="$HOME/bin:$PATH"' >> ~/.bashrc
 source ~/.bashrc
 
 # Verify installation
-openshift-install version
+~/bin/openshift-install-${OCP_VERSION} version
 oc version --client
+```
+
+### How ProxShift Manages Binary Versions
+
+ProxShift automatically handles version switching:
+
+1. **Reads cluster version** from inventory (`ocp_version` field)
+2. **Locates versioned binary** at `{ocp_installer_path}/openshift-install-{version}`
+3. **Creates symlink** `openshift-install` → `openshift-install-{version}`
+4. **Uses symlinked binary** for all operations
+
+**Example**:
+
+```bash
+# Inventory: ocp_version: "4.17.1"
+# ProxShift looks for: /Users/royarzab/bin/openshift-install-4.17.1
+# ProxShift creates: /Users/royarzab/bin/openshift-install -> openshift-install-4.17.1
+# Ansible uses: openshift-install (symlink)
+```
+
+**Multiple versions**:
+
+```bash
+# Install multiple versions simultaneously
+~/bin/openshift-install-4.16.5
+~/bin/openshift-install-4.17.1
+~/bin/openshift-install-4.18.0
+
+# ProxShift automatically symlinks the correct version per cluster
 ```
 
 ## Infrastructure Requirements
@@ -248,4 +296,4 @@ Once all prerequisites are met, proceed to the [Setup Guide](setup.md) for confi
 
 ---
 
-**ProxShift** - Production-ready OpenShift on Proxmox ⚡
+**ProxShift** - Production-ready OpenShift on Proxmox

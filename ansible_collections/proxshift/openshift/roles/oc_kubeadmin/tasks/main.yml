@@ -17,7 +17,7 @@
   ansible.builtin.set_fact:
     oc_kubeadmin_password: '{{ vault_kubeadmin.data.data.data.kubeadmin }}'
   when: not (vault_kubeadmin.failed or (vault_kubeadmin.data is not defined or vault_kubeadmin.data.data.data.kubeadmin is not defined))
-  no_log: true  # Prevent password exposure in logs
+  no_log: true  # Prevent vault token and password exposure in logs
   tags:
     - always
 
@@ -37,7 +37,7 @@
   register: openshift_auth_results
   failed_when: openshift_auth_results.failed or (openshift_auth_results.openshift_auth.api_key is not defined)
   when: oc_kubeadmin_password is defined
-  no_log: true  # Prevent password and token exposure in logs
+  no_log: true  # Prevent vault token and password exposure in logs
   tags:
     - always
 
@@ -45,7 +45,7 @@
   ansible.builtin.set_fact:
     oc_kubeadmin_value_return: '{{ openshift_auth_results.openshift_auth.api_key }}'
   when: not openshift_auth_results.failed and openshift_auth_results.openshift_auth.api_key is defined
-  no_log: true  # Prevent API key exposure in logs
+  no_log: true  # Prevent vault token and password exposure in logs
   tags:
     - always
 

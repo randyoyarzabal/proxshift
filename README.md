@@ -134,7 +134,7 @@ proxshift/
 
 | Guide | Description |
 |-------|-------------|
-| **[Prerequisites](docs/PREREQUISITES.md)** | System requirements and virtual environment setup |
+| **[Prerequisites](docs/prerequisites.md)** | System requirements and virtual environment setup |
 | **[Setup Guide](docs/setup.md)** | Complete installation and configuration |
 | **[Environment Guide](docs/environment.md)** | Virtual environments and shell integration |
 | **[Architecture](docs/architecture.md)** | How ProxShift works internally |
