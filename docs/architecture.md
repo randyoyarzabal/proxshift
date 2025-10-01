@@ -2,7 +2,7 @@
 
 Deep dive into how ProxShift works under the hood.
 
-## 🏗️ System Architecture
+## System Architecture
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -36,7 +36,7 @@ Deep dive into how ProxShift works under the hood.
 └──────────────────────────────────────────────────────────────┘
 ```
 
-## 🎯 Core Components
+## Core Components
 
 ### 1. User Interface Layer
 
@@ -167,7 +167,7 @@ VM Specifications:
 - OS: RHCOS via ISO mounting
 ```
 
-## 🔄 Provisioning Workflow
+## Provisioning Workflow
 
 ### Phase 1: Preparation
 
@@ -262,7 +262,7 @@ VM Specifications:
    └── Validate cluster health
 ```
 
-## 🔧 Key Design Principles
+## Key Design Principles
 
 ### 1. Idempotent Operations
 
@@ -292,7 +292,7 @@ VM Specifications:
 - **Access Control**: Vault policies control secret access
 - **Audit Trail**: All secret access logged
 
-## 🎨 Template System
+## Template System
 
 ### Universal Template Design
 
@@ -323,7 +323,7 @@ VM Specifications:
 - **Network Calculation**: Subnet and IP allocation
 - **Resource Scaling**: Memory/CPU based on node count
 
-## 🔍 Monitoring and Observability
+## Monitoring and Observability
 
 ### Installation Monitoring
 
@@ -345,7 +345,7 @@ oc get clusterversion,nodes,co
 - **Cluster Health**: OpenShift cluster operator status
 - **ACM Status**: Hub cluster import verification
 
-## 🚀 Performance Characteristics
+## Performance Characteristics
 
 ### Typical Provisioning Times
 
@@ -369,7 +369,7 @@ oc get clusterversion,nodes,co
 - **Storage Performance**: SSD recommended for etcd workloads
 - **DNS Resolution**: Ensure proper DNS configuration
 
-## 🔮 Extension Points
+## Extension Points
 
 ### Custom Roles
 

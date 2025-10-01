@@ -2,7 +2,7 @@
 
 Comprehensive guide for setting up and managing your ProxShift development environment.
 
-## 🐍 Virtual Environment Setup
+## Virtual Environment Setup
 
 ### Why Use Virtual Environments?
 
@@ -50,7 +50,7 @@ source proxshift.sh
 4. ✅ Loads all ProxShift functions
 5. ✅ Shows helpful error messages if issues found
 
-## 🔧 Environment Variables
+## Environment Variables
 
 ### Core Variables
 
@@ -83,7 +83,7 @@ EOF
 set -a; source .env; set +a
 ```
 
-## 📁 Directory Structure
+## Directory Structure
 
 ```
 proxshift/
@@ -101,7 +101,7 @@ proxshift/
 └── docs/                      # Documentation
 ```
 
-## 🚀 Daily Workflow
+## Daily Workflow
 
 ### Starting a Session
 
@@ -149,7 +149,7 @@ deactivate
 # Or simply close terminal
 ```
 
-## 🔍 Troubleshooting
+## Troubleshooting
 
 ### Virtual Environment Issues
 
@@ -204,7 +204,7 @@ cd $PROXSHIFT_ROOT
 source proxshift.sh
 ```
 
-## 🐚 Shell Integration
+## Shell Integration
 
 ### Bash Integration
 
@@ -242,7 +242,7 @@ alias ps.env "cd $PROXSHIFT_ROOT && source proxshift.sh"
 alias ps.activate "cd $PROXSHIFT_ROOT && source .venv/bin/activate"
 ```
 
-## 🔬 Advanced Configuration
+## Advanced Configuration
 
 ### Custom Python Path
 

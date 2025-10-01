@@ -1,8 +1,12 @@
+- name: Get available cluster names from inventory
+  ansible.builtin.set_fact:
+    available_clusters: "{{ groups.keys() | select('match', '^(ocp|ocp-).*') | list }}"
+
 - name: Check if requesting valid cluster name
   ansible.builtin.assert:
     that:
-      - cluster_name in cluster_list
-    fail_msg: "Cluster name '{{ cluster_name }}' is not valid. Valid options are: {{ cluster_list | join(', ') }}"
+      - cluster_name in available_clusters
+    fail_msg: "Cluster name '{{ cluster_name }}' is not valid. Valid options are: {{ available_clusters | join(', ') }}"
 
 # Check if ocp_version binary exists in the ocp_installer_path
 - name: Check if ocp_version binary exists

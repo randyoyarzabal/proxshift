@@ -36,7 +36,7 @@ Vault password: [user types password]
 
 **Result**: ✅ Interactive password prompt
 
-## 🎯 **Behavior Summary**
+## Behavior Summary
 
 | Scenario | ProxShift Behavior | User Experience |
 |----------|-------------------|-----------------|
@@ -44,7 +44,7 @@ Vault password: [user types password]
 | **Vault file missing** | Interactive prompt | Manual password entry |
 | **File unreadable** | Interactive prompt | Manual password entry |
 
-## 🔧 **Technical Details**
+## Technical Details
 
 ProxShift implements **smart vault detection**:
 
@@ -53,7 +53,7 @@ ProxShift implements **smart vault detection**:
 3. **If missing**: Let Ansible prompt user for password
 4. **Result**: Always works, whether automated or interactive
 
-## 💡 **Best Practices**
+## Best Practices
 
 - ✅ **Create** `config/.vault_pass` for automation
 - ✅ **Use strong** random passwords (20+ characters)  

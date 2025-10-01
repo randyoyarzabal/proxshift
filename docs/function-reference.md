@@ -136,12 +136,6 @@ Store cluster credentials in Vault.
 ps.vault <cluster_name> [--dry-run]
 ```
 
-### ps.dns
-Configure DNS for cluster.
-
-```bash
-ps.dns <cluster_name> [--dry-run]
-```
 
 ## Advanced Operations
 

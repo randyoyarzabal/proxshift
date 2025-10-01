@@ -240,10 +240,6 @@ function ps.vault(){
   _ps.run_ansible "${_ps_filtered_args[0]}" "vault" "" "" false false "$_ps_dry_run" "$_ps_check_mode"
 }
 
-function ps.dns(){
-  _ps.parse_dry_run "$@"
-  _ps.run_ansible "${_ps_filtered_args[0]}" "dns" "" "" false false "$_ps_dry_run" "$_ps_check_mode"
-}
 
 function ps.generate_manifests(){
   _ps.parse_dry_run "$@"

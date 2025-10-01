@@ -25,28 +25,63 @@ fi
 # ProxShift Environment Configuration
 # Set these environment variables or they'll use sensible defaults
 export PROXSHIFT_ROOT="${PROXSHIFT_ROOT:-$(pwd)}"
-export PROXSHIFT_VAULT_PASS="${PROXSHIFT_VAULT_PASS:-${PROXSHIFT_ROOT}/config/.vault_pass}"
+export PROXSHIFT_VAULT_PASS="${PROXSHIFT_VAULT_PASS:-/Users/royarzab/chief_plugins/project_data/proxshift/.vault_pass}"
 
 function ps.activate() {
   echo "Activating ProxShift environment..."
   
-  # Activate virtual environment if it exists
+  # Create and activate virtual environment if it doesn't exist
   if [[ -f ".venv/bin/activate" ]]; then
-    echo "Activating virtual environment..."
+    echo "Activating existing virtual environment..."
     source .venv/bin/activate
     echo "✓ Virtual environment activated: $(python --version)"
   else
-    echo "⚠ Virtual environment not found. Setting up..."
-    echo "   Run: python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt"
-    echo "   Then run ps.activate again"
-    return 1
+    echo "🔧 Virtual environment not found. Creating new environment..."
+    
+    # Create virtual environment
+    if ! python3 -m venv .venv; then
+      echo "✗ Failed to create virtual environment"
+      echo "   Make sure python3 is installed and accessible"
+      return 1
+    fi
+    
+    # Activate virtual environment
+    source .venv/bin/activate
+    echo "✓ Virtual environment created and activated: $(python --version)"
+    
+    # Upgrade pip
+    echo "🔧 Upgrading pip..."
+    pip install --upgrade pip
+    
+    # Install requirements
+    if [[ -f "requirements.txt" ]]; then
+      echo "🔧 Installing Python dependencies..."
+      if ! pip install -r requirements.txt; then
+        echo "✗ Failed to install Python dependencies"
+        return 1
+      fi
+      echo "✓ Python dependencies installed"
+    else
+      echo "⚠ requirements.txt not found, skipping Python dependencies"
+    fi
+    
+    # Install Ansible collections
+    if [[ -f "collections/requirements.yml" ]]; then
+      echo "🔧 Installing Ansible collections..."
+      if ! ansible-galaxy collection install -r collections/requirements.yml; then
+        echo "✗ Failed to install Ansible collections"
+        return 1
+      fi
+      echo "✓ Ansible collections installed"
+    else
+      echo "⚠ collections/requirements.yml not found, skipping Ansible collections"
+    fi
   fi
   
   # Verify required tools
   if ! command -v ansible >/dev/null 2>&1; then
-    echo "✗ Ansible not found. Installing dependencies..."
-    echo "   Run: pip install -r requirements.txt"
-    echo "   Then run ps.activate again"
+    echo "✗ Ansible not found after setup"
+    echo "   This shouldn't happen. Please check your Python environment."
     return 1
   fi
   
@@ -72,7 +107,7 @@ function ps.root() {
 
 # Utility functions
 function _ps.get_gitops_root() {
-  local config_file="${PROXSHIFT_ROOT}/config/site-config.yaml"
+  local config_file="/Users/royarzab/chief_plugins/project_data/proxshift/site-config.yaml"
   if [[ -f "$config_file" ]]; then
     # Extract gitops_root value from YAML, handling quoted paths
     grep "^gitops_root:" "$config_file" | sed 's/^gitops_root: *"\?\([^"]*\)"\?/\1/'
@@ -87,7 +122,7 @@ function ps.clusters() {
   
   if [[ "$_ps_dry_run" == "true" ]]; then
     echo " DRY RUN - Would list available clusters:"
-    echo "   Source: inventory/clusters.yml"
+    echo "   Source: /Users/royarzab/chief_plugins/project_data/proxshift/clusters.yml"
     echo "   Method: ansible-inventory --list + jq parsing"
     echo "   Fallback: grep parsing of clusters.yml"
     echo ""
@@ -113,8 +148,8 @@ function ps.clusters() {
 
 # Fallback method to list clusters directly from YAML
 function _ps.list_clusters_fallback() {
-  if [[ -f "inventory/clusters.yml" ]]; then
-    grep -E "^\s+[a-z][a-z0-9-]+:$" inventory/clusters.yml | \
+  if [[ -f "/Users/royarzab/chief_plugins/project_data/proxshift/clusters.yml" ]]; then
+    grep -E "^\s+[a-z][a-z0-9-]+:$" /Users/royarzab/chief_plugins/project_data/proxshift/clusters.yml | \
     grep -v "children\|vars\|hosts" | \
     sed "s/://g" | \
     awk '{print $1}' | \
@@ -146,7 +181,7 @@ function ps.validate_cluster() {
   
   # Fallback method if ansible-inventory failed
   if [[ "$cluster_found" == "false" ]]; then
-    if [[ -f "inventory/clusters.yml" ]] && grep -E "^\s+${cluster}:$" inventory/clusters.yml >/dev/null 2>&1; then
+    if [[ -f "/Users/royarzab/chief_plugins/project_data/proxshift/clusters.yml" ]] && grep -E "^\s+${cluster}:$" /Users/royarzab/chief_plugins/project_data/proxshift/clusters.yml >/dev/null 2>&1; then
       cluster_found=true
     fi
   fi
@@ -226,7 +261,7 @@ function _ps.run_ansible() {
   else
     echo "⚠ PROXSHIFT_VAULT_PASS not defined"
     echo "   Ansible will prompt for vault password interactively"
-    echo "   Set: export PROXSHIFT_VAULT_PASS=\${PROXSHIFT_ROOT}/config/.vault_pass"
+    echo "   Set: export PROXSHIFT_VAULT_PASS=/Users/royarzab/chief_plugins/project_data/proxshift/.vault_pass"
   fi
   
   # Start timing if requested (only for actual runs)
@@ -373,10 +408,6 @@ function ps.vault(){
   _ps.run_ansible "${_ps_filtered_args[0]}" "vault" "" "" false false "$_ps_dry_run" "$_ps_check_mode"
 }
 
-function ps.dns(){
-  _ps.parse_dry_run "$@"
-  _ps.run_ansible "${_ps_filtered_args[0]}" "dns" "" "" false false "$_ps_dry_run" "$_ps_check_mode"
-}
 
 function ps.generate_manifests(){
   _ps.parse_dry_run "$@"

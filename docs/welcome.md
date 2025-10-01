@@ -6,11 +6,11 @@
 
 🔗 **Repository:** [https://github.com/randyoyarzabal/proxshift](https://github.com/randyoyarzabal/proxshift)
 
-## 🎉 Congratulations!
+## Congratulations!
 
 You now have a **professionally branded**, **fully portable**, and **easy-to-adopt** OpenShift automation framework!
 
-## ✨ What Makes ProxShift Special
+## What Makes ProxShift Special
 
 ### 🌍 **Truly Portable**
 

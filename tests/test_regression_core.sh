@@ -180,7 +180,6 @@ test_ansible_operations_dry_run() {
         "ps.acm_import"
         "ps.gitops"
         "ps.vault"
-        "ps.dns"
     )
     
     for op in "${operations[@]}"; do

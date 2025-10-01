@@ -408,13 +408,6 @@ function ps.vault(){
 
 alias ocp.ansible_vault=ps.vault
 
-function ps.dns(){
-  _ps.parse_dry_run "$@"
-  echo "⚠️  LEGACY: Consider using modular approach with site.yaml"
-  _ps.run_ansible_legacy "${_ps_filtered_args[0]}" "dns" "" "" false false "$_ps_dry_run"
-}
-
-alias ocp.ansible_dns=ps.dns
 
 function ps.force(){
   _ps.parse_dry_run "$@"  # Parse all args consistently  

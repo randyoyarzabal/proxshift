@@ -1,4 +1,4 @@
-# ProxShift ⚡
+# ProxShift
 
 OpenShift clusters on Proxmox made simple.
 
@@ -6,7 +6,7 @@ OpenShift clusters on Proxmox made simple.
 [![Ansible](https://img.shields.io/badge/Ansible-2.15%2B-red)](https://ansible.com)
 [![OpenShift](https://img.shields.io/badge/OpenShift-4.16%2B-red)](https://openshift.com)
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # 1. Setup virtual environment (avoids "pip externally managed" errors)
@@ -30,17 +30,17 @@ ps.activate
 ps.provision ocp-sno1
 ```
 
-## ✨ Features
+## Features
 
-- **🐍 Modern Python Setup** - Virtual environment support with manual activation control
-- **📦 Zero Package Management** - No sudo required, uses user-space mounts
-- **🔐 Secure by Default** - All credential operations use `no_log: true`
-- **🏗️ Inventory-Driven** - Define all clusters in `inventory/clusters.yml`
-- **🎨 Universal Templates** - No per-cluster files to maintain
-- **🤖 Auto-Detection** - SNO vs multi-node, IPs, roles, protocol detection
-- **🌍 Portable** - Works from any directory with consistent setup
+- **Modern Python Setup** - Virtual environment support with manual activation control
+- **Zero Package Management** - No sudo required, uses user-space mounts
+- **Secure by Default** - All credential operations use `no_log: true`
+- **Inventory-Driven** - Define all clusters in `inventory/clusters.yml`
+- **Universal Templates** - No per-cluster files to maintain
+- **Auto-Detection** - SNO vs multi-node, IPs, roles, protocol detection
+- **Portable** - Works from any directory with consistent setup
 
-## 📋 Requirements
+## Requirements
 
 ### System Prerequisites
 
@@ -57,7 +57,7 @@ ps.provision ocp-sno1
 - **DNS** with cluster domain resolution
 - **Network** with static IP allocation
 
-## 🎯 Cluster Types
+## Cluster Types
 
 | Cluster | Type | Nodes | Memory | Use Case |
 |---------|------|-------|---------|----------|
@@ -65,7 +65,7 @@ ps.provision ocp-sno1
 | `ocp3` | Compact | 3 masters | 48GB+ | Small production |
 | `ocp` | Standard | 3+3 | 96GB+ | Full production |
 
-## 🔧 Core Commands
+## Core Commands
 
 ```bash
 # Environment setup (run once)
@@ -85,7 +85,7 @@ ps.generate_manifests ocp-sno1  # Generate OpenShift manifests only
 ansible-playbook site.yaml -e cluster_name=ocp-sno1 --tags=create_iso
 ```
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
@@ -100,14 +100,14 @@ ansible-playbook site.yaml -e cluster_name=ocp-sno1 --tags=create_iso
 ```
 
 **ProxShift workflow:**
-1. 🔐 **Retrieve secrets** from HashiCorp Vault
-2. 🎨 **Generate manifests** using universal templates
-3. 💿 **Create ISO** with agent-based installer
-4. 🖥️ **Provision VMs** on Proxmox with ISO mounting
-5. ⚡ **Auto-install** OpenShift via agent installer
-6. 🔗 **Import cluster** to ACM hub (optional)
+1. **Retrieve secrets** from HashiCorp Vault
+2. **Generate manifests** using universal templates
+3. **Create ISO** with agent-based installer
+4. **Provision VMs** on Proxmox with ISO mounting
+5. **Auto-install** OpenShift via agent installer
+6. **Import cluster** to ACM hub (optional)
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 proxshift/
@@ -130,7 +130,7 @@ proxshift/
 └── docs/                      # Comprehensive documentation
 ```
 
-## 🔗 Documentation
+## Documentation
 
 | Guide | Description |
 |-------|-------------|
@@ -140,7 +140,7 @@ proxshift/
 | **[Architecture](docs/architecture.md)** | How ProxShift works internally |
 | **[Function Reference](docs/FUNCTION_REFERENCE.md)** | Complete command reference |
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### "pip externally managed" Error
 
@@ -166,7 +166,7 @@ source .venv/bin/activate
 ansible-galaxy collection install -r collections/requirements.yml --force
 ```
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create feature branch: `git checkout -b feature/amazing-feature`
@@ -176,11 +176,11 @@ ansible-galaxy collection install -r collections/requirements.yml --force
 6. Push to branch: `git push origin feature/amazing-feature`
 7. Open a Pull Request
 
-## 📜 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - OpenShift team for the agent-based installer
 - Proxmox team for the excellent virtualization platform
@@ -189,6 +189,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**ProxShift** - Where Proxmox meets OpenShift ⚡
+**ProxShift** - Where Proxmox meets OpenShift
 
-🔗 **GitHub:** [https://github.com/randyoyarzabal/proxshift](https://github.com/randyoyarzabal/proxshift)
+**GitHub:** [https://github.com/randyoyarzabal/proxshift](https://github.com/randyoyarzabal/proxshift)

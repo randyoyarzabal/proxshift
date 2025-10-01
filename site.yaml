@@ -46,8 +46,8 @@
     backup_verbose: false        # Enable verbose output for backup/restore operations
     enable_backup_restore: true  # Enable certificate backup/restore functionality
   vars_files:
-    - config/site-config.yaml
-    - "{{ vault_path | default('config/vault-credentials.yml') }}" # Secrets vault path
+    - /Users/royarzab/chief_plugins/project_data/proxshift/site-config.yaml
+    - "{{ vault_path | default('/Users/royarzab/chief_plugins/project_data/proxshift/vault-credentials.yml') }}" # Secrets vault path
 
   pre_tasks:
     # Step 1: Retrieve secrets from HashiCorp Vault

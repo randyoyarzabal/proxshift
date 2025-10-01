@@ -2,7 +2,7 @@
 
 Complete installation and configuration guide for ProxShift.
 
-## 📋 Prerequisites
+## Prerequisites
 
 ### Required Software
 
@@ -29,7 +29,7 @@ Complete installation and configuration guide for ProxShift.
 - **Network access** to OpenShift image registries
 - **SSH access** to Proxmox nodes (for troubleshooting)
 
-## 🚀 Installation
+## Installation
 
 ### Step 1: Clone Repository
 
@@ -120,7 +120,7 @@ openshift-install version
 oc version --client
 ```
 
-## ⚙️ Configuration
+## Configuration
 
 ### Step 1: Copy Configuration Templates
 
@@ -301,7 +301,7 @@ ocp:
       ocp_version: "4.17.1"
 ```
 
-## 🔐 Vault Setup
+## Vault Setup
 
 ### Create Required Secrets
 
@@ -327,7 +327,7 @@ vault kv put secret/certificates \
   ca_bundle="-----BEGIN CERTIFICATE-----..."
 ```
 
-## 🧪 Verification
+## Verification
 
 ### Test Configuration
 
@@ -363,7 +363,7 @@ curl -k -X GET "https://proxmox.example.com:8006/api2/json/version" \
   -H "Authorization: PVEAPIToken=api-user@pve!token-id=token-secret"
 ```
 
-## 🎯 First Cluster
+## First Cluster
 
 ### Provision Single Node OpenShift
 
@@ -397,7 +397,7 @@ oc whoami --show-console
 cat ocp_install/ocp-sno1/auth/kubeadmin-password
 ```
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -456,7 +456,7 @@ tail -f ocp_install/cluster-name/.openshift_install.log
 # Verify network connectivity from VMs
 ```
 
-## 📚 Next Steps
+## Next Steps
 
 1. **[Environment Variables](environment.md)** - Advanced configuration
 2. **[Template Generation](template-generation.md)** - Preview manifests

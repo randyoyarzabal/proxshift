@@ -42,13 +42,22 @@
   loop: "{{ _vault_response.results }}"
   loop_control:
     label: "{{ item.secret.name }}"
-  no_log: true  # Prevent secret values exposure in logs
+  when: item.json.data.data is defined
+  tags:
+    - always
+
+- name: "Extract secret values from KV v1 structure"
+  ansible.builtin.set_fact:
+    _vault_retrieved_secrets: "{{ _vault_retrieved_secrets | combine({item.secret.name: item.json.data[item.secret.key]}) }}"
+  loop: "{{ _vault_response.results }}"
+  loop_control:
+    label: "{{ item.secret.name }}"
+  when: item.json.data.data is not defined and item.json.data is defined
   tags:
     - always
 
 - name: "Set output variable with all retrieved secrets"
   ansible.builtin.set_fact:
     "{{ hashicorp_vault_output_var }}": "{{ _vault_retrieved_secrets }}"
-  no_log: true  # Prevent secret values exposure in logs
   tags:
     - always

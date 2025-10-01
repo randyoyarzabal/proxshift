@@ -2,7 +2,7 @@
 
 Essential requirements for running ProxShift successfully.
 
-## 🐍 Python Environment (Required)
+## Python Environment (Required)
 
 ### Virtual Environment Setup
 
@@ -34,7 +34,7 @@ source proxshift.sh
 # ✅ Virtual environment activated: Python 3.13.7
 ```
 
-## 💻 System Packages
+## System Packages
 
 ### macOS (Homebrew)
 
@@ -69,7 +69,7 @@ sudo dnf install nfs-utils cifs-utils
 sudo dnf install git
 ```
 
-## 🔧 OpenShift Tools
+## OpenShift Tools
 
 ### Download OpenShift Installer
 
@@ -94,7 +94,7 @@ openshift-install version
 oc version --client
 ```
 
-## 🏗️ Infrastructure Requirements
+## Infrastructure Requirements
 
 ### Proxmox VE
 
@@ -117,7 +117,7 @@ oc version --client
 - **Firewall**: Appropriate ports open for OpenShift
 - **Load Balancer**: For multi-node clusters (external or integrated)
 
-## 🔐 Access Requirements
+## Access Requirements
 
 ### Required Permissions
 
@@ -144,7 +144,7 @@ export VAULT_TOKEN="your-vault-token"
 export VAULT_ADDR="https://vault.example.com:8200"
 ```
 
-## ✅ Verification Checklist
+## Verification Checklist
 
 ### Environment Check
 
@@ -192,7 +192,7 @@ nslookup api.cluster.example.com
 ping cluster-node.example.com
 ```
 
-## 🐛 Common Issues
+## Common Issues
 
 ### "pip externally managed" Error
 
@@ -230,7 +230,7 @@ ls -la .tmpmount/         # Should be writable by user
 # NFS: Export must allow user access
 ```
 
-## 📋 Pre-Installation Summary
+## Pre-Installation Summary
 
 Before running ProxShift, ensure you have:
 

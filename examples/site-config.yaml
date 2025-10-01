@@ -29,13 +29,8 @@ backup_secrets:
 
 backup_dir: "{{ gitops_root }}/backups"
 
-# 📋 Valid cluster names (matches your inventory/clusters.yml)
-cluster_list:
-  - ocp          # Standard multi-node cluster
-  - ocp3         # Compact cluster  
-  - ocp-sno1     # Single Node OpenShift
-  - ocp-sno2     # Single Node OpenShift
-  - ocp-sno3     # Single Node OpenShift
+# 📋 Cluster names are automatically discovered from inventory/clusters.yml
+# No need to maintain a separate list - they're defined in the inventory structure
 
 # 🔐 HashiCorp Vault secrets to retrieve
 vault_items:
