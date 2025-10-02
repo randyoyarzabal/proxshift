@@ -378,14 +378,12 @@
         - gitops
         - gitops_loop
         - eso
-        - acm
 
     - name: Apply GitOps configuration
       tags:
         - gitops
         - gitops_loop
         - eso
-        - acm
       when: enable_gitops | default(false)
       block:
         - name: Apply External Secrets Operator (ESO) configuration

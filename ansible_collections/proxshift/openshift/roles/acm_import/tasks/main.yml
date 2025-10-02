@@ -98,7 +98,7 @@
         api_version: cluster.open-cluster-management.io/v1
         src: '{{ acm_import_output_dir }}/acm_join.yaml'
 
-    - name: Label ManagedCluster (ocp-sno3) with apply-certs=true
+    - name: Label ManagedCluster ({{ acm_import_cluster }}) with apply-certs=true
       kubernetes.core.k8s:
         host: "{{ acm_import_hub_cluster_api_url }}"
         api_key: "{{ acm_import_api_key }}"
@@ -106,13 +106,12 @@
         validate_certs: false
         api_version: cluster.open-cluster-management.io/v1
         kind: ManagedCluster
-        name: ocp-sno3
+        name: "{{ acm_import_cluster }}"
         merge_type: merge
         definition:
           metadata:
             labels:
               apply-certs: "true"
-      # when: acm_import_cluster in ['ocp-sno1','ocp-sno3', 'ocp3', 'ocp']
 
     - name: Label ManagedCluster (all) with cluster-name={{ acm_import_cluster }}
       kubernetes.core.k8s:

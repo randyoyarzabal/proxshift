@@ -332,7 +332,7 @@ function ps.post(){
 
 function ps.acm_import(){
   _ps.parse_dry_run "$@"
-  _ps.run_ansible "${_ps_filtered_args[0]}" "acm,acm_import" "backup,restore" "" false false "$_ps_dry_run" "$_ps_check_mode"
+  _ps.run_ansible "${_ps_filtered_args[0]}" "acm_import" "backup,restore" "" false false "$_ps_dry_run" "$_ps_check_mode"
 }
 
 function ps.backup_certs(){

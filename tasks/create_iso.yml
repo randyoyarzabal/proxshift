@@ -99,28 +99,6 @@
   tags:
     - create_iso
 
-- name: "Display ISO copy status"
-  ansible.builtin.debug:
-    msg: |-
-      Copying bootable ISO to remote share for cluster: {{ cluster_name }}
-      Version: {{ ocp_version }}
-      Source file: {{ ocp_install_dir }}/agent.x86_64.iso
-      Destination path: {{ iso_boot_path }}
-      Destination filename: {{ cluster_name }}-agent.x86_64.iso
-      
-      ISO copy process:
-      - ISO will be copied to remote share for PVE access
-      - File will be renamed to include cluster name
-      - PVE hosts will be able to access the ISO
-      
-      Requirements:
-      - Remote share must be accessible
-      - Sufficient disk space on destination
-      - Network connectivity to remote share
-  when: create_iso_result is succeeded
-  tags:
-    - create_iso
-
 - name: "Display ISO ready for copy"
   ansible.builtin.debug:
     msg: |-
