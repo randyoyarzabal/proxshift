@@ -9,30 +9,30 @@ OpenShift clusters on Proxmox made simple.
 ## Quick Start
 
 ```bash
-# 1. Setup virtual environment (avoids "pip externally managed" errors)
+# 1. Clone and setup
 git clone https://github.com/randyoyarzabal/proxshift.git
 cd proxshift
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
 
-# 2. Configure and deploy
-cp examples/site-config.yaml config/
+# 2. Configure for your environment
+mkdir -p ~/.proxshift
+mkdir -p inventory
+cp examples/site-config.yaml ~/.proxshift/
+cp examples/vault-credentials.yml ~/.proxshift/
 cp examples/clusters.yml.template inventory/clusters.yml
 # Edit configs for your environment
 
-# 3. Set environment and deploy cluster
+# 3. Deploy cluster (auto-creates venv and installs dependencies)
 export PROXSHIFT_ROOT=$HOME/dev/proxshift
-export PROXSHIFT_VAULT_PASS=${PROXSHIFT_ROOT}/config/.vault_pass
+export PROXSHIFT_VAULT_PASS=${HOME}/.proxshift/.vault_pass
 
 source proxshift.sh
-ps.activate
+ps.activate  # Auto-creates .venv, installs deps, activates environment
 ps.provision ocp-sno1
 ```
 
 ## Features
 
-- **Modern Python Setup** - Virtual environment support with manual activation control
+- **Auto-Setup Environment** - `ps.activate` auto-creates venv, installs dependencies, and activates
 - **Zero Package Management** - No sudo required, uses user-space mounts
 - **Secure by Default** - All credential operations use `no_log: true`
 - **Inventory-Driven** - Define all clusters in `inventory/clusters.yml`
@@ -69,7 +69,8 @@ ps.provision ocp-sno1
 
 ```bash
 # Environment setup (run once)
-source proxshift.sh  # Auto-activates .venv and loads functions
+source proxshift.sh  # Loads functions
+ps.activate          # Auto-creates .venv, installs deps, activates environment
 
 # Cluster operations
 ps.clusters                    # List available clusters
@@ -87,19 +88,20 @@ ansible-playbook site.yaml -e cluster_name=ocp-sno1 --tags=create_iso
 
 ## Architecture
 
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   ProxShift     │    │     Proxmox      │    │   OpenShift     │
-│   (Controller)  │────▶│   (Hypervisor)   │────▶│   (Cluster)     │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-         │                       │                       │
-    ┌────▼────┐              ┌───▼───┐              ┌────▼────┐
-    │  Vault  │              │  VMs  │              │  Nodes  │
-    │ (Secrets)│              │(ISO)  │              │(Workload)│
-    └─────────┘              └───────┘              └─────────┘
+```text
+┌─────────────────────┐    ┌─────────────────────┐    ┌─────────────────────┐
+│     ProxShift       │    │      Proxmox        │    │     OpenShift       │
+│    (Controller)     │───▶│    (Hypervisor)     │───▶│     (Cluster)       │
+└─────────────────────┘    └─────────────────────┘    └─────────────────────┘
+           │                           │                           │
+    ┌──────▼──────┐              ┌─────▼─────┐              ┌──────▼──────┐
+    │    Vault    │              │    VMs    │              │    Nodes    │
+    │  (Secrets)  │              │   (ISO)   │              │ (Workload)  │
+    └─────────────┘              └───────────┘              └─────────────┘
 ```
 
 **ProxShift workflow:**
+
 1. **Retrieve secrets** from HashiCorp Vault
 2. **Generate manifests** using universal templates
 3. **Create ISO** with agent-based installer
@@ -109,25 +111,37 @@ ansible-playbook site.yaml -e cluster_name=ocp-sno1 --tags=create_iso
 
 ## Project Structure
 
-```
+```text
 proxshift/
-├── .venv/                      # Virtual environment (auto-created)
+├── .venv/                     # Virtual environment (auto-created)
 ├── proxshift.sh               # Main entry point with auto-venv
 ├── site.yaml                  # Primary Ansible playbook
-├── config/
-│   ├── site-config.yaml       # Environment configuration
-│   └── vault-credentials.yml  # Vault connection settings
-├── inventory/
-│   └── clusters.yml           # All cluster definitions
+├── ansible.cfg                # Ansible configuration
+├── inventory/                 # User cluster inventory (gitignored)
+│   └── clusters.yml           # Your cluster definitions (or symlink to external)
+├── examples/                  # Configuration templates
+│   ├── site-config.yaml       # Environment configuration template
+│   ├── vault-credentials.yml  # Vault connection template
+│   └── clusters.yml.template  # Cluster definitions template
 ├── ansible_collections/       # ProxShift roles and collections
 │   └── proxshift/
 │       ├── openshift/         # OpenShift-specific roles
 │       ├── proxmox/           # Proxmox VM management
 │       └── hashi_vault/       # Vault integration
 ├── ocp_install/               # Generated files per cluster
-│   ├── ocp-sno1/             # ISO, credentials, manifests
+│   ├── ocp-sno1/              # ISO, credentials, manifests
 │   └── ocp3/
 └── docs/                      # Comprehensive documentation
+
+# User configuration (created during installation)
+~/.proxshift/
+├── site-config.yaml           # Your environment configuration
+├── vault-credentials.yml      # Your vault connection settings
+└── .vault_pass               # Vault password file
+
+# Alternative: Symlink to external inventory
+# ln -s ~/.proxmox/inventory/clusters.yml inventory/clusters.yml
+# or: ln -s /path/to/your/existing/inventory inventory
 ```
 
 ## Documentation
@@ -145,10 +159,9 @@ proxshift/
 ### "pip externally managed" Error
 
 ```bash
-# Solution: Use virtual environment (modern Python security)
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+# Solution: Use ps.activate (auto-creates venv and installs dependencies)
+source proxshift.sh
+ps.activate  # Handles everything automatically
 ```
 
 ### Permission Denied on Mount
@@ -161,16 +174,16 @@ pip install -r requirements.txt
 ### Ansible Collection Not Found
 
 ```bash
-# Ensure virtual environment is activated
-source .venv/bin/activate
-ansible-galaxy collection install -r collections/requirements.yml --force
+# Use ps.activate to ensure everything is properly installed
+source proxshift.sh
+ps.activate  # Auto-installs collections and activates environment
 ```
 
 ## Contributing
 
 1. Fork the repository
 2. Create feature branch: `git checkout -b feature/amazing-feature`
-3. Setup development environment: `source .venv/bin/activate`
+3. Setup development environment: `source proxshift.sh && ps.activate`
 4. Test changes: `ansible-lint`, `yamllint`
 5. Commit changes: `git commit -m 'Add amazing feature'`
 6. Push to branch: `git push origin feature/amazing-feature`

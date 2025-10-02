@@ -3,7 +3,7 @@
 # This file contains your environment-specific settings for ProxShift
 
 # HashiCorp Vault connection file
-vault_path: 'config/vault-credentials.yml'
+vault_path: '~/.proxshift/vault-credentials.yml'
 
 # OpenShift installer binary location
 ocp_installer_path: '/usr/local/bin'  # Default: standard PATH location
@@ -18,7 +18,7 @@ hub_cluster_api_url: "https://api.{{ hub_cluster }}.{{ network_defaults.base_dom
 # ProxShift generated paths (usually don't need to change)
 ocp_iso_image: '{{ ocp_install_dir }}/agent.x86_64.iso'
 cluster_marker: '{{ ocp_install_dir }}/.cluster_provisioned'
-gitops_root: "{{ ansible_user_dir }}/gitops"  # Update if using GitOps
+gitops_root: "{{ ansible_user_dir }}/.proxshift/gitops"  # Update if using GitOps
 
 # Backup configuration
 backup_secrets:

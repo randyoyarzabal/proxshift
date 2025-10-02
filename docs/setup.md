@@ -77,7 +77,7 @@ ProxShift requires environment variables and manual activation:
 ```bash
 # Set required environment variables (examples only - adjust paths)
 export PROXSHIFT_ROOT=$HOME/dev/proxshift
-export PROXSHIFT_VAULT_PASS=${PROXSHIFT_ROOT}/config/.vault_pass
+export PROXSHIFT_VAULT_PASS=${HOME}/.proxshift/.vault_pass
 
 # Load ProxShift functions
 source proxshift.sh
@@ -152,8 +152,8 @@ ProxShift automatically:
 
 ```bash
 # Your inventory specifies: ocp_version: "4.17.1"
-# ProxShift looks for: /Users/royarzab/bin/openshift-install-4.17.1
-# ProxShift creates: /Users/royarzab/bin/openshift-install -> openshift-install-4.17.1
+# ProxShift looks for: ~/bin/openshift-install-4.17.1
+# ProxShift creates: ~/bin/openshift-install -> openshift-install-4.17.1
 # Ansible uses: openshift-install (the symlink)
 ```
 
@@ -174,14 +174,22 @@ ProxShift automatically:
 
 ```bash
 cd $PROXSHIFT_ROOT
-cp examples/site-config.yaml config/site-config.yaml
-cp examples/vault-credentials.yml config/vault-credentials.yml
+
+# Create user configuration directory
+mkdir -p ~/.proxshift
+
+# Copy configuration templates to user directory
+cp examples/site-config.yaml ~/.proxshift/
+cp examples/vault-credentials.yml ~/.proxshift/
+
+# Create inventory directory and copy cluster template
+mkdir -p inventory
 cp examples/clusters.yml.template inventory/clusters.yml
 ```
 
 ### Step 2: Configure Site Settings
 
-Edit `config/site-config.yaml`:
+Edit `~/.proxshift/site-config.yaml`:
 
 ```yaml
 # Network configuration
@@ -218,7 +226,7 @@ backup_secrets:
 
 ### Step 3: Configure Vault Credentials
 
-Edit `config/vault-credentials.yml`:
+Edit `~/.proxshift/vault-credentials.yml`:
 
 ```yaml
 # HashiCorp Vault configuration

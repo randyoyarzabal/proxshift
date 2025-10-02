@@ -45,8 +45,8 @@
     backup_verbose: false        # Enable verbose output for backup/restore operations
     enable_backup_restore: true  # Enable certificate backup/restore functionality
   vars_files:
-    - /Users/royarzab/chief_plugins/project_data/proxshift/site-config.yaml
-    - "{{ vault_path | default('/Users/royarzab/chief_plugins/project_data/proxshift/vault-credentials.yml') }}" # Secrets vault path
+    - "{{ ansible_user_dir }}/.proxshift/site-config.yaml"
+    - "{{ vault_path | default(ansible_user_dir + '/.proxshift/vault-credentials.yml') }}" # Secrets vault path
 
   pre_tasks:
     # Step 1: Retrieve secrets from HashiCorp Vault
@@ -90,7 +90,6 @@
         file: tasks/generate_manifests.yml
       tags:
         - manifests
-        - acm_import
 
     # Step 4: ACM detach/prepare import configs (if not hub cluster)
     - name: Detach cluster from hub if necessary and apply import configuration
@@ -152,7 +151,7 @@
           user: "{{ proxmox_api_user }}"
           password: "{{ proxmox_api_password }}"
         proxmox_vm_config:
-          name: "{{ node_name }}"
+          name: "{{ node_name }}.{{ cluster_name }}.{{ network_defaults.base_domain }}"
           node: "{{ hostvars[node_name]['pve_node'] | default(hostvars[node_name]['node']) }}"
           vmid: "{{ hostvars[node_name]['vmid'] }}"
           memory: "{{ hostvars[node_name]['memory'] }}"

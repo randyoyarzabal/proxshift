@@ -6,7 +6,7 @@ set -e
 echo "🚀 Testing ProxShift Collection Integration with ocp-sno3 provisioning"
 echo "=================================================================="
 
-export PROXSHIFT_ROOT="/Users/royarzab/dev/ocp_proxmox"
+export PROXSHIFT_ROOT="${HOME}/dev/ocp_proxmox"
 export PROXSHIFT_VAULT_PASS="${PROXSHIFT_ROOT}/config/.vault_pass"
 
 cd "$PROXSHIFT_ROOT"

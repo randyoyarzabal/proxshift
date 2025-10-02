@@ -25,7 +25,7 @@ fi
 # ProxShift Environment Configuration
 # Set these environment variables or they'll use sensible defaults
 export PROXSHIFT_ROOT="${PROXSHIFT_ROOT:-$(pwd)}"
-export PROXSHIFT_VAULT_PASS="${PROXSHIFT_VAULT_PASS:-/Users/royarzab/chief_plugins/project_data/proxshift/.vault_pass}"
+export PROXSHIFT_VAULT_PASS="${PROXSHIFT_VAULT_PASS:-${HOME}/.proxshift/.vault_pass}"
 
 function ps.activate() {
   echo "Activating ProxShift environment..."
@@ -107,7 +107,7 @@ function ps.root() {
 
 # Utility functions
 function _ps.get_gitops_root() {
-  local config_file="/Users/royarzab/chief_plugins/project_data/proxshift/site-config.yaml"
+  local config_file="${HOME}/.proxshift/site-config.yaml"
   if [[ -f "$config_file" ]]; then
     # Extract gitops_root value from YAML, handling quoted paths
     grep "^gitops_root:" "$config_file" | sed 's/^gitops_root: *"\?\([^"]*\)"\?/\1/'
@@ -122,7 +122,7 @@ function ps.clusters() {
   
   if [[ "$_ps_dry_run" == "true" ]]; then
     echo " DRY RUN - Would list available clusters:"
-    echo "   Source: /Users/royarzab/chief_plugins/project_data/proxshift/clusters.yml"
+    echo "   Source: inventory/clusters.yml"
     echo "   Method: ansible-inventory --list + jq parsing"
     echo "   Fallback: grep parsing of clusters.yml"
     echo ""
@@ -148,8 +148,8 @@ function ps.clusters() {
 
 # Fallback method to list clusters directly from YAML
 function _ps.list_clusters_fallback() {
-  if [[ -f "/Users/royarzab/chief_plugins/project_data/proxshift/clusters.yml" ]]; then
-    grep -E "^\s+[a-z][a-z0-9-]+:$" /Users/royarzab/chief_plugins/project_data/proxshift/clusters.yml | \
+  if [[ -f "inventory/clusters.yml" ]]; then
+    grep -E "^\s+[a-z][a-z0-9-]+:$" "inventory/clusters.yml" | \
     grep -v "children\|vars\|hosts" | \
     sed "s/://g" | \
     awk '{print $1}' | \
@@ -181,7 +181,7 @@ function ps.validate_cluster() {
   
   # Fallback method if ansible-inventory failed
   if [[ "$cluster_found" == "false" ]]; then
-    if [[ -f "/Users/royarzab/chief_plugins/project_data/proxshift/clusters.yml" ]] && grep -E "^\s+${cluster}:$" /Users/royarzab/chief_plugins/project_data/proxshift/clusters.yml >/dev/null 2>&1; then
+    if [[ -f "inventory/clusters.yml" ]] && grep -E "^\s+${cluster}:$" "inventory/clusters.yml" >/dev/null 2>&1; then
       cluster_found=true
     fi
   fi
@@ -261,7 +261,7 @@ function _ps.run_ansible() {
   else
     echo "⚠ PROXSHIFT_VAULT_PASS not defined"
     echo "   Ansible will prompt for vault password interactively"
-    echo "   Set: export PROXSHIFT_VAULT_PASS=/Users/royarzab/chief_plugins/project_data/proxshift/.vault_pass"
+    echo "   Set: export PROXSHIFT_VAULT_PASS=${HOME}/.proxshift/.vault_pass"
   fi
   
   # Start timing if requested (only for actual runs)

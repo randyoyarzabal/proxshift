@@ -126,8 +126,8 @@ ProxShift automatically handles version switching:
 
 ```bash
 # Inventory: ocp_version: "4.17.1"
-# ProxShift looks for: /Users/royarzab/bin/openshift-install-4.17.1
-# ProxShift creates: /Users/royarzab/bin/openshift-install -> openshift-install-4.17.1
+# ProxShift looks for: ~/bin/openshift-install-4.17.1
+# ProxShift creates: ~/bin/openshift-install -> openshift-install-4.17.1
 # Ansible uses: openshift-install (symlink)
 ```
 

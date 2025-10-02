@@ -92,8 +92,8 @@ proxshift/
 ├── config/
 │   ├── site-config.yaml       # Site configuration
 │   └── vault-credentials.yml  # Vault settings
-├── inventory/
-│   └── clusters.yml           # Cluster definitions
+├── inventory/                 # Cluster inventory definitions
+│   └── clusters.yml           # All cluster definitions
 ├── ocp_install/               # Generated ISOs and credentials
 │   ├── cluster1/
 │   └── cluster2/
