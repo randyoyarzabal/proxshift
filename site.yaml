@@ -6,16 +6,15 @@
 # 2. Set cluster variables from inventory  
 # 3a. Install preparation (validation and setup)
 # 3b. Generate OpenShift manifests (modular)
-# 3c. Create bootable ISO image (modular)
 # 4. ACM detach/prepare import configs (if not hub cluster)
 # 5. Provision VMs on Proxmox
+# 3c. Create bootable ISO image (modular)
 # 6. Start Proxmox VMs
 # 7. Wait for OpenShift installation completion + write credentials to vault
 # 8. Import cluster to hub (ACM import)
-# 9. Apply storage labels (post-install, configurable)
-# 10. Backup or restore certificate secrets (configurable)
-# 11. Apply GitOps/ESO configuration (configurable)
-# 12. Apply other post-installation tasks
+# 9. Backup or restore certificate secrets (configurable)
+# 10. Apply GitOps/ESO configuration (configurable)
+# 11. Apply other post-installation tasks (including storage labels)
 #
 # Usage:
 #   ansible-playbook site.yaml -e cluster_name=ocp-sno1                    # Full deployment
@@ -91,13 +90,7 @@
         file: tasks/generate_manifests.yml
       tags:
         - manifests
-
-    # Step 3c: Create bootable ISO image  
-    - name: "Create bootable ISO for cluster: {{ cluster_name }}"
-      ansible.builtin.include_tasks:
-        file: tasks/create_iso.yml
-      tags:
-        - create_iso
+        - acm_import
 
     # Step 4: ACM detach/prepare import configs (if not hub cluster)
     - name: Detach cluster from hub if necessary and apply import configuration
@@ -109,7 +102,6 @@
         acm_import_hub_cluster: "{{ hub_cluster }}"
         acm_import_cluster_api_url: "{{ cluster_api_url }}"
         acm_import_hub_cluster_api_url: "{{ hub_cluster_api_url }}"
-        acm_import_api_key: ""
         acm_import_output_dir: "{{ ocp_install_dir }}"
       when: (hub_cluster != cluster_name) and enable_acm_import | default(true)
       tags:
@@ -152,6 +144,13 @@
         - vm_create
         - vm_delete
 
+    # Step 3c: Create bootable ISO image  
+    - name: "Create bootable ISO for cluster: {{ cluster_name }}"
+      ansible.builtin.include_tasks:
+        file: tasks/create_iso.yml
+      tags:
+        - create_iso
+
     # Step 6: Start Proxmox VMs
     - name: "Start Proxmox VMs for the cluster {{ cluster_name }}"
       ansible.builtin.include_role:
@@ -180,27 +179,12 @@
         acm_import_hub_cluster: "{{ hub_cluster }}"
         acm_import_cluster_api_url: "{{ cluster_api_url }}"
         acm_import_hub_cluster_api_url: "{{ hub_cluster_api_url }}"
-        acm_import_api_key: ""
         acm_import_output_dir: "{{ ocp_install_dir }}"
       when: (hub_cluster != cluster_name) and enable_acm_import | default(true)
       tags:
         - acm_import
 
-    # Step 9: Apply storage labels (post-install, configurable)
-    - name: "Apply storage labels to the cluster nodes: {{ cluster_name }}"
-      ansible.builtin.include_role:
-        name: proxshift.openshift.node_labeling
-      vars:
-        oc_apply_label_cluster_url: "{{ cluster_api_url }}"
-        oc_apply_label_api_key: "{{ oc_kubeadmin_value_return }}"
-        oc_apply_label_key: 'cluster.ocs.openshift.io/openshift-storage'
-        oc_apply_label_value: ''
-      when: (cluster_name in ['ocp']) and enable_storage_labels | default(true)
-      tags:
-        - post
-        - storage
-
-    # Step 10: Certificate backup operation (standalone - for EXISTING clusters)
+    # Step 9: Certificate backup operation (standalone - for EXISTING clusters)
     - name: "Backup certificate secrets from existing cluster: {{ cluster_name }}"
       when:
         - cluster_name in ['ocp-sno1']
@@ -230,7 +214,7 @@
             secret_management_operation: "backup"
             secret_management_verbose: "{{ backup_verbose | default(false) }}"
 
-    # Step 11: Certificate restore operation (during cluster rebuild/post-install)
+    # Step 10: Certificate restore operation (during cluster rebuild/post-install)
     - name: "Restore certificate secrets to rebuilt cluster: {{ cluster_name }}"
       when:
         - cluster_name in ['ocp-sno1']
@@ -261,7 +245,7 @@
             secret_management_operation: "restore"
             secret_management_verbose: "{{ backup_verbose | default(false) }}"
 
-    # Step 12: Apply GitOps/ESO configuration (configurable)
+    # Step 11: Apply GitOps/ESO configuration (configurable)
     - name: Apply GitOps configuration
       tags:
         - gitops
@@ -279,9 +263,22 @@
             file: tasks/gitops/init_hub.yml
           when: (hub_cluster == cluster_name) and enable_gitops_hub | default(true)
 
-    # Step 13: Apply other post-installation tasks
+    # Step 12: Apply other post-installation tasks (including storage labels)
     - name: Apply any other necessary tasks for the cluster
       ansible.builtin.include_tasks:
         file: tasks/post_tasks.yml
       tags:
         - post
+
+    - name: "Apply storage labels to the cluster nodes: {{ cluster_name }}"
+      ansible.builtin.include_role:
+        name: proxshift.openshift.node_labeling
+      vars:
+        oc_apply_label_cluster_url: "{{ cluster_api_url }}"
+        oc_apply_label_api_key: "{{ oc_kubeadmin_value_return }}"
+        oc_apply_label_key: 'cluster.ocs.openshift.io/openshift-storage'
+        oc_apply_label_value: ''
+      when: (cluster_name in ['ocp']) and enable_storage_labels | default(true)
+      tags:
+        - post
+        - storage
