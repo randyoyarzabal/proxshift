@@ -36,7 +36,7 @@
     
     # Feature flags - Set to false to disable optional components for blank cluster deployment
     enable_acm_import: true      # Enable ACM hub import/detach functionality
-    enable_gitops: true         # Enable GitOps configuration deployment (most users want blank cluster)
+    enable_gitops: true          # Enable GitOps configuration deployment (most users want blank cluster)
     enable_eso: true             # Enable External Secrets Operator (only when GitOps is enabled)
     enable_gitops_hub: true      # Enable GitOps hub reconciliation loop
     enable_storage_labels: true  # Enable storage node labeling (OCS/ODF)
