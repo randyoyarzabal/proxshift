@@ -1,22 +1,17 @@
 # Prepare ACM for joining the newly created cluster
 
-- name: Assert required variables are defined for acm_import role
-  vars:
-    acm_import_required_vars:
-      - acm_import_enabled
-      - acm_import_hub_cluster
-      - acm_import_cluster
-      - acm_import_hub_cluster_api_url
-      - acm_import_cluster_api_url
-      - acm_import_output_dir
-      - ocp_install_dir
+- name: "Validate ACM import configuration"
   ansible.builtin.assert:
     that:
-      - vars[item] is defined
-    fail_msg: "Required variable '{{ item }}' is not defined!"
-  loop: "{{ acm_import_required_vars }}"
-  loop_control:
-    label: "{{ item }}"
+      - acm_import_enabled is defined
+      - acm_import_hub_cluster is defined
+      - acm_import_cluster is defined
+      - acm_import_hub_cluster_api_url is defined
+      - acm_import_cluster_api_url is defined
+      - acm_import_output_dir is defined
+      - ocp_install_dir is defined
+    success_msg: "ACM import configuration validated successfully"
+    fail_msg: "Required ACM import variables are not defined. Check acm_import_enabled, acm_import_hub_cluster, acm_import_cluster, and API URLs."
   tags:
     - acm_import
 

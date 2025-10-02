@@ -109,6 +109,33 @@
         - vm_delete
 
     # Step 5: Provision VMs on Proxmox
+    - name: "Display VM creation status"
+      ansible.builtin.debug:
+        msg: |-
+          Creating VMs on Proxmox for cluster: {{ cluster_name }}
+          Version: {{ ocp_version }}
+          Total nodes: {{ groups[cluster_name] | length }}
+          Force install: {{ force_install }}
+          
+          Node details:
+          {% for node in groups[cluster_name] %}
+          - Node: {{ node }}
+            PVE Host: {{ hostvars[node]['pve_node'] | default(hostvars[node]['node']) }}
+            VM ID: {{ hostvars[node]['vmid'] }}
+            Memory: {{ hostvars[node]['memory'] }}MB
+            Cores: {{ hostvars[node]['cores'] | default(2) }}
+            Sockets: {{ hostvars[node]['sockets'] | default(1) }}
+            CPU: {{ hostvars[node]['cpu'] | default('host') }}
+          {% endfor %}
+          
+          Requirements:
+          - Proxmox API access configured
+          - ISO image available (if specified)
+          - Sufficient resources on PVE hosts
+      tags:
+        - vm_create
+        - vm_delete
+
     - name: "Provision VMs on Proxmox for {{ cluster_name }}"
       ansible.builtin.include_role:
         name: proxshift.proxmox.proxmox_vm
@@ -139,7 +166,7 @@
           disks: "{{ hostvars[node_name]['disks'] | default({}) }}"
           nics: "{{ hostvars[node_name]['nics'] | default({}) }}"
         proxmox_vm_state: present
-        proxmox_vm_force: "{{ force_install }}"
+        proxmox_vm_force: "{{ force_install | bool }}"
       tags:
         - vm_create
         - vm_delete
@@ -152,6 +179,28 @@
         - create_iso
 
     # Step 6: Start Proxmox VMs
+    - name: "Display VM startup status"
+      ansible.builtin.debug:
+        msg: |-
+          Starting Proxmox VMs for cluster: {{ cluster_name }}
+          Version: {{ ocp_version }}
+          Total nodes: {{ groups[cluster_name] | length }}
+          
+          Node details:
+          {% for node in groups[cluster_name] %}
+          - Node: {{ node }}
+            PVE Host: {{ hostvars[node]['pve_node'] | default(hostvars[node]['node']) }}
+            VM ID: {{ hostvars[node]['vmid'] }}
+            Status: Starting...
+          {% endfor %}
+          
+          Requirements:
+          - VMs must be created and configured
+          - ISO image must be available
+          - Network connectivity to PVE hosts
+      tags:
+        - vm_start
+
     - name: "Start Proxmox VMs for the cluster {{ cluster_name }}"
       ansible.builtin.include_role:
         name: proxshift.proxmox.vm_lifecycle
@@ -161,6 +210,37 @@
         - vm_start
 
     # Step 7: Wait for OpenShift installation completion + write credentials to vault
+    - name: "Display installation status"
+      ansible.builtin.debug:
+        msg: |-
+          Starting OpenShift installation for cluster: {{ cluster_name }}
+          Version: {{ ocp_version }}
+          API URL: {{ cluster_api_url }}
+          Total nodes: {{ groups[cluster_name] | length }}
+          
+          Installation process:
+          - VMs are starting and booting from ISO
+          - OpenShift installer will configure the cluster
+          - Installation typically takes 45+ minutes
+          - Progress will be monitored automatically
+          
+          Node details:
+          {% for node in groups[cluster_name] %}
+          - Node: {{ node }}
+            PVE Host: {{ hostvars[node]['pve_node'] | default(hostvars[node]['node']) }}
+            VM ID: {{ hostvars[node]['vmid'] }}
+            Role: {{ 'Control Plane' if 'master' in node or 'control' in node else 'Worker' }}
+          {% endfor %}
+          
+          Requirements:
+          - VMs must be running and accessible
+          - Network connectivity to cluster API
+          - Sufficient time for installation (45+ minutes)
+      tags:
+        - install
+        - vault
+        - cluster_login
+
     - name: Wait for OpenShift installation to complete
       ansible.builtin.include_tasks:
         file: tasks/installation.yml
@@ -170,6 +250,30 @@
         - cluster_login
 
     # Step 8: Import cluster to hub (ACM import)
+    - name: "Display ACM import status"
+      ansible.builtin.debug:
+        msg: |-
+          Importing cluster to ACM hub for cluster: {{ cluster_name }}
+          Version: {{ ocp_version }}
+          Target cluster: {{ cluster_name }}
+          Hub cluster: {{ hub_cluster }}
+          Cluster API URL: {{ cluster_api_url }}
+          Hub API URL: {{ hub_cluster_api_url }}
+          
+          ACM import process:
+          - Cluster will be imported to hub: {{ hub_cluster }}
+          - ACM policies and configurations will be applied
+          - Cluster will be managed by the hub cluster
+          
+          Requirements:
+          - Hub cluster must be accessible
+          - Target cluster must be running
+          - ACM operator must be installed on hub
+          - Proper RBAC permissions configured
+      when: (hub_cluster != cluster_name) and enable_acm_import | default(true)
+      tags:
+        - acm_import
+
     - name: Import cluster to hub cluster
       ansible.builtin.include_role:
         name: proxshift.openshift.acm_import
@@ -246,6 +350,36 @@
             secret_management_verbose: "{{ backup_verbose | default(false) }}"
 
     # Step 11: Apply GitOps/ESO configuration (configurable)
+    - name: "Display GitOps configuration status"
+      ansible.builtin.debug:
+        msg: |-
+          Applying GitOps configuration for cluster: {{ cluster_name }}
+          Version: {{ ocp_version }}
+          GitOps enabled: {{ enable_gitops | default(false) }}
+          ESO enabled: {{ enable_eso | default(true) }}
+          Hub GitOps enabled: {{ enable_gitops_hub | default(true) }}
+          Is hub cluster: {{ hub_cluster == cluster_name }}
+          
+          GitOps components:
+          {% if enable_gitops | default(false) %}
+          - External Secrets Operator (ESO): {{ 'Enabled' if enable_eso | default(true) else 'Disabled' }}
+          - Hub reconciliation loop: {{ 'Enabled' if (hub_cluster == cluster_name) and enable_gitops_hub | default(true) else 'Disabled' }}
+          {% else %}
+          - GitOps configuration: Disabled
+          {% endif %}
+          
+          Requirements:
+          - Cluster must be running and accessible
+          - GitOps operators must be available
+          - Proper RBAC permissions configured
+          - Git repository access (if applicable)
+      when: enable_gitops | default(false)
+      tags:
+        - gitops
+        - gitops_loop
+        - eso
+        - acm
+
     - name: Apply GitOps configuration
       tags:
         - gitops
@@ -269,6 +403,29 @@
         file: tasks/post_tasks.yml
       tags:
         - post
+
+    - name: "Display storage labeling status"
+      ansible.builtin.debug:
+        msg: |-
+          Applying storage labels to cluster: {{ cluster_name }}
+          Version: {{ ocp_version }}
+          Storage labels enabled: {{ enable_storage_labels | default(true) }}
+          Cluster API URL: {{ cluster_api_url }}
+          
+          Storage labeling process:
+          - Nodes will be labeled for OCS/ODF storage
+          - Label key: cluster.ocs.openshift.io/openshift-storage
+          - Only applies to specific clusters: {{ ['ocp'] | join(', ') }}
+          
+          Requirements:
+          - Cluster must be running and accessible
+          - OCS/ODF operators must be available
+          - Proper RBAC permissions configured
+          - Storage nodes must be identified
+      when: (cluster_name in ['ocp']) and enable_storage_labels | default(true)
+      tags:
+        - post
+        - storage
 
     - name: "Apply storage labels to the cluster nodes: {{ cluster_name }}"
       ansible.builtin.include_role:

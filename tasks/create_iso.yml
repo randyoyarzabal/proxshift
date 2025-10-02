@@ -99,6 +99,39 @@
   tags:
     - create_iso
 
+- name: "Display ISO copy status"
+  ansible.builtin.debug:
+    msg: |-
+      Copying bootable ISO to remote share for cluster: {{ cluster_name }}
+      Version: {{ ocp_version }}
+      Source file: {{ ocp_install_dir }}/agent.x86_64.iso
+      Destination path: {{ iso_boot_path }}
+      Destination filename: {{ cluster_name }}-agent.x86_64.iso
+      
+      ISO copy process:
+      - ISO will be copied to remote share for PVE access
+      - File will be renamed to include cluster name
+      - PVE hosts will be able to access the ISO
+      
+      Requirements:
+      - Remote share must be accessible
+      - Sufficient disk space on destination
+      - Network connectivity to remote share
+  when: create_iso_result is succeeded
+  tags:
+    - create_iso
+
+- name: "Display ISO ready for copy"
+  ansible.builtin.debug:
+    msg: |-
+      ISO ready for copy to remote share
+      Cluster: {{ cluster_name }}
+      Source: {{ ocp_install_dir }}/agent.x86_64.iso
+      Destination: {{ iso_boot_path }}/{{ cluster_name }}-agent.x86_64.iso
+  when: create_iso_result is succeeded
+  tags:
+    - create_iso
+
 - name: "Copy boot image to remote share"
   ansible.builtin.include_role:
     name: proxshift.openshift.iso_copy
@@ -126,14 +159,14 @@
     content: "Cluster provisioned at {{ ansible_date_time.iso8601 }}"
     dest: "{{ cluster_marker }}"
     mode: '0644'
-  when: create_iso_result is succeeded and (not is_cluster_provisioned or force_install)
+  when: create_iso_result is succeeded and (not (is_cluster_provisioned | bool) or (force_install | bool))
   tags:
     - create_iso
 
 - name: "Display ISO creation completion"
   ansible.builtin.debug:
     msg: |-
-      ✅ ISO creation completed successfully!
+      ISO creation completed successfully!
       Cluster: {{ cluster_name }}
       Version: {{ ocp_version }}
       Generated ISO: {{ ocp_iso_image }}

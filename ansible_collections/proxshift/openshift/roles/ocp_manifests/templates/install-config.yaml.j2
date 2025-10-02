@@ -41,7 +41,7 @@ platform:
     - {{ hostvars[groups[cluster_name][0]]['ingress_vip'] }}
 {% endif %}
 fips: false
-pullSecret: '{{ generate_install_files_pull_secret | to_json }}'
+pullSecret: '{{ generate_install_files_pull_secret }}'
 sshKey: '{{ generate_install_files_ssh_key }}'
 additionalTrustBundle: |
   {{ generate_install_files_cert_bundle | indent(2) }}

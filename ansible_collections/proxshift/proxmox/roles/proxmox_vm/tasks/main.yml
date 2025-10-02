@@ -175,15 +175,6 @@
   delegate_to: localhost
   no_log: true  # Prevent API password exposure in logs
 
-- name: "Debug VM creation result and qcow2 config"
-  ansible.builtin.debug:
-    msg:
-      - "VM creation changed: {{ _proxmox_vm_creation_result is changed }}"
-      - "QCOW2 image defined: {{ _proxmox_vm_final_config.qcow2_image is defined }}"
-      - "QCOW2 image value: {{ _proxmox_vm_final_config.qcow2_image | default('NOT SET') }}"
-      - "Node: {{ _proxmox_vm_final_config.node }}"
-      - "VM status exists: {{ _proxmox_vm_status.status is defined }}"
-
 - name: "Import QCOW2 disk image"
   ansible.builtin.shell: |
     # Delete temporary disk

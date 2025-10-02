@@ -1,4 +1,4 @@
-- name: "Start/stop Proxmox VMs for the cluster {{ start_stop_vms_state }}"
+- name: "{{ 'Starting' if start_stop_vms_state == 'started' else 'Stopping' }} VMs for cluster {{ cluster_name }}"
   community.proxmox.proxmox_kvm:
     api_host: '{{ hostvars[item].pve_node }}'
     api_user: '{{ proxmox_api_user }}'
@@ -12,7 +12,7 @@
   delay: 30
   loop: "{{ groups[cluster_name] }}"
   loop_control:
-    label: "{{ hostvars[item].pve_node }}:{{ hostvars[item].vmid }}-{{ item }}"
+    label: "{{ item }} (VMID: {{ hostvars[item].vmid }}) on {{ hostvars[item].pve_node }}"
   when:
     - groups[cluster_name] is defined
     - hostvars[item].vmid is defined
