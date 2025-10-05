@@ -1,23 +1,74 @@
-- name: "{{ 'Starting' if start_stop_vms_state == 'started' else 'Stopping' }} VMs for cluster {{ cluster_name }}"
+- name: "Display VM operation details"
+  ansible.builtin.debug:
+    msg: |-
+      {{ 'Starting' if start_stop_vms_state == 'started' else 'Stopping' }} VMs for cluster: {{ cluster_name }}
+      Total VMs: {{ groups[cluster_name] | length }}
+      Operation: {{ start_stop_vms_state | title }}
+      
+      VM Details:
+      {% for vm in groups[cluster_name] %}
+      - {{ vm }} (VMID: {{ hostvars[vm].vmid }}) on {{ hostvars[vm].pve_node | default(hostvars[vm].node) }}
+      {% endfor %}
+  when:
+    - groups[cluster_name] is defined
+  tags:
+    - vm_start
+    - vm_stop
+    - vm_create
+    - vm_delete
+
+- name: "{{ 'Starting' if start_stop_vms_state == 'started' else 'Stopping' }} individual VMs"
   community.proxmox.proxmox_kvm:
-    api_host: '{{ hostvars[item].pve_node }}'
+    api_host: '{{ hostvars[item].pve_node | default(hostvars[item].node) }}'
     api_user: '{{ proxmox_api_user }}'
     api_password: '{{ proxmox_api_password }}'
     vmid: '{{ hostvars[item].vmid }}'
     state: "{{ start_stop_vms_state }}"
     force: true
-  register: result
-  until: not result.failed
+  register: vm_operation_result
+  until: not vm_operation_result.failed
   retries: 10
   delay: 30
   loop: "{{ groups[cluster_name] }}"
-  loop_control:
-    label: "{{ item }} (VMID: {{ hostvars[item].vmid }}) on {{ hostvars[item].pve_node }}"
   when:
     - groups[cluster_name] is defined
     - hostvars[item].vmid is defined
   ignore_errors: true
   no_log: true  # Prevent API password exposure in logs
+  tags:
+    - vm_start
+    - vm_stop
+    - vm_create
+    - vm_delete
+
+- name: "Show VM operation progress"
+  ansible.builtin.debug:
+    msg: "[OK] {{ 'Started' if start_stop_vms_state == 'started' else 'Stopped' }} VM: {{ item.item }} (VMID: {{ hostvars[item.item].vmid }}) on {{ hostvars[item.item].pve_node | default(hostvars[item.item].node) }}"
+  loop: "{{ vm_operation_result.results | default([]) }}"
+  when:
+    - vm_operation_result is defined
+    - not item.failed | default(false)
+  tags:
+    - vm_start
+    - vm_stop
+    - vm_create
+    - vm_delete
+
+- name: "Show VM operation summary"
+  ansible.builtin.debug:
+    msg: |-
+      VM {{ start_stop_vms_state | title }} operation completed!
+      Summary:
+        - VMs processed: {{ vm_operation_result.results | default([]) | length }}
+        - Cluster: {{ cluster_name }}
+        - Operation: {{ start_stop_vms_state | title }}
+      {% if start_stop_vms_state == 'started' %}
+      VMs are now running and ready for OpenShift installation
+      {% else %}
+      VMs have been stopped successfully
+      {% endif %}
+  when:
+    - vm_operation_result is defined
   tags:
     - vm_start
     - vm_stop

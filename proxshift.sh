@@ -351,7 +351,7 @@ function ps.backup_certs(){
   echo "   - cert-manager-secret-homelab-ca-tls.yaml"
   echo "   - homelab-secret-homelab-io-tls.yaml"
   echo ""
-  _ps.run_ansible "ocp-sno1" "cert_backup" "" "-e backup_operation=true" false false "$_ps_dry_run" "$_ps_check_mode"
+  _ps.run_ansible "ocp-sno1" "cert_backup" "" "-e backup_operation=true -e backup_verbose=true" false false "$_ps_dry_run" "$_ps_check_mode"
   
   if [[ "$_ps_dry_run" == "false" && $? -eq 0 ]]; then
     echo ""
@@ -380,7 +380,7 @@ function ps.restore_certs(){
   echo "   - cert-manager-secret-homelab-ca-tls.yaml"
   echo "   - homelab-secret-homelab-io-tls.yaml"
   echo ""
-  _ps.run_ansible "ocp-sno1" "post,cert_restore" "" "-e restore_operation=true" false false "$_ps_dry_run" "$_ps_check_mode"
+  _ps.run_ansible "ocp-sno1" "post,cert_restore" "" "-e restore_operation=true -e backup_verbose=true" false false "$_ps_dry_run" "$_ps_check_mode"
   
   if [[ "$_ps_dry_run" == "false" && $? -eq 0 ]]; then
     echo ""

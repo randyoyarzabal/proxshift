@@ -32,7 +32,7 @@
 - name: "Validate ISO source file parameter"
   ansible.builtin.fail:
     msg: "iso_source_file is required"
-  when: "{{ iso_source_file is not defined or iso_source_file == '' }}"
+  when: iso_source_file is not defined or iso_source_file == ''
   tags:
     - iso_copy
     - validation
@@ -40,7 +40,7 @@
 - name: "Validate ISO destination path parameter"
   ansible.builtin.fail:
     msg: "iso_destination_path is required"
-  when: "{{ iso_destination_path is not defined or iso_destination_path == '' }}"
+  when: iso_destination_path is not defined or iso_destination_path == ''
   tags:
     - iso_copy
     - validation
@@ -48,7 +48,7 @@
 - name: "Validate protocol parameter"
   ansible.builtin.fail:
     msg: "Unsupported protocol '{{ iso_protocol }}'. Supported: smb, cifs, nfs, file"
-  when: "{{ iso_protocol not in ['smb', 'cifs', 'nfs', 'file'] }}"
+  when: iso_protocol not in ['smb', 'cifs', 'nfs', 'file']
   tags:
     - iso_copy
     - validation
@@ -56,7 +56,7 @@
 - name: "Validate SMB/CIFS credentials"
   ansible.builtin.fail:
     msg: "iso_mount_user and iso_mount_password are required for SMB/CIFS mounts"
-  when: "{{ iso_protocol in ['smb', 'cifs'] and (iso_mount_user is not defined or iso_mount_password is not defined) }}"
+  when: iso_protocol in ['smb', 'cifs'] and (iso_mount_user is not defined or iso_mount_password is not defined)
   no_log: true  # Prevent credential exposure in logs
   tags:
     - iso_copy

@@ -231,6 +231,25 @@
   delegate_to: localhost
   no_log: true  # Prevent API password exposure in logs
 
+- name: "Display VM disk configuration details"
+  ansible.builtin.debug:
+    msg: |-
+      Configuring VM disks for: {{ _proxmox_vm_final_config.name }}
+      VMID: {{ _proxmox_vm_final_config.vmid }}
+      Total disks: {{ _proxmox_vm_final_config.disks | length }}
+      
+      Disk Configuration:
+      {% for disk_name, disk_config in _proxmox_vm_final_config.disks.items() %}
+      - {{ disk_name }}: {{ disk_config.size }}G ({{ disk_config.storage | default('local-lvm') }})
+      {% endfor %}
+  when:
+    - proxmox_vm_state in ['present']
+    - (not _proxmox_vm_status.status is defined) or proxmox_vm_force
+    - _proxmox_vm_final_config.disks | length > 0
+  tags:
+    - vm_create
+    - vm_delete
+
 - name: "Configure VM disks"
   community.general.proxmox_disk:
     api_host: "{{ proxmox_vm_api.host }}"
@@ -246,16 +265,26 @@
     wwn: "{{ item.value.wwn | default(omit) }}"
     state: present
   loop: "{{ _proxmox_vm_final_config.disks | dict2items }}"
-  loop_control:
-    label: "{{ item.key }}: {{ item.value.size }}G"
   when:
     - proxmox_vm_state in ['present']
     - (not _proxmox_vm_status.status is defined) or proxmox_vm_force
     - _proxmox_vm_final_config.disks | length > 0
     # Skip scsi0 if qcow2_image is defined (it's handled by import)
     - not (_proxmox_vm_final_config.qcow2_image is defined and item.key == 'scsi0')
+  register: _proxmox_vm_disk_results
   delegate_to: localhost
   no_log: true  # Prevent API password exposure in logs
+
+- name: "Show VM disk configuration progress"
+  ansible.builtin.debug:
+    msg: "[OK] Configured disk: {{ item.item.key }} ({{ item.item.value.size }}G on {{ item.item.value.storage | default('local-lvm') }})"
+  loop: "{{ _proxmox_vm_disk_results.results | default([]) }}"
+  when:
+    - _proxmox_vm_disk_results is defined
+    - not item.failed | default(false)
+  tags:
+    - vm_create
+    - vm_delete
 
 - name: "Resize imported qcow2 disk if size specified"
   ansible.builtin.shell: |
@@ -274,6 +303,25 @@
     - _qcow2_import_result is changed
   register: _qcow2_resize_result
 
+- name: "Display VM network interface configuration details"
+  ansible.builtin.debug:
+    msg: |-
+      Configuring VM network interfaces for: {{ _proxmox_vm_final_config.name }}
+      VMID: {{ _proxmox_vm_final_config.vmid }}
+      Total interfaces: {{ _proxmox_vm_final_config.nics | length }}
+      
+      Network Configuration:
+      {% for nic_name, nic_config in _proxmox_vm_final_config.nics.items() %}
+      - {{ nic_name }}: {{ nic_config.model | default('virtio') }} on {{ nic_config.bridge | default('vmbr0') }}
+      {% endfor %}
+  when:
+    - proxmox_vm_state in ['present']
+    - (not _proxmox_vm_status.status is defined) or proxmox_vm_force
+    - _proxmox_vm_final_config.nics | length > 0
+  tags:
+    - vm_create
+    - vm_delete
+
 - name: "Configure VM network interfaces"
   community.general.proxmox_nic:
     api_host: "{{ proxmox_vm_api.host }}"
@@ -288,14 +336,24 @@
     firewall: "{{ item.value.firewall | default(false) | bool }}"
     state: present
   loop: "{{ _proxmox_vm_final_config.nics | dict2items }}"
-  loop_control:
-    label: "{{ item.key }}: {{ item.value.bridge | default('vmbr0') }}"
   when:
     - proxmox_vm_state in ['present']
     - (not _proxmox_vm_status.status is defined) or proxmox_vm_force
     - _proxmox_vm_final_config.nics | length > 0
+  register: _proxmox_vm_nic_results
   delegate_to: localhost
   no_log: true  # Prevent API password exposure in logs
+
+- name: "Show VM network interface configuration progress"
+  ansible.builtin.debug:
+    msg: "[OK] Configured interface: {{ item.item.key }} ({{ item.item.value.model | default('virtio') }} on {{ item.item.value.bridge | default('vmbr0') }})"
+  loop: "{{ _proxmox_vm_nic_results.results | default([]) }}"
+  when:
+    - _proxmox_vm_nic_results is defined
+    - not item.failed | default(false)
+  tags:
+    - vm_create
+    - vm_delete
 
 - name: "Manage VM power state"
   community.general.proxmox_kvm:

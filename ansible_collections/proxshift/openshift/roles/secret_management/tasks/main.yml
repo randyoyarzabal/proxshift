@@ -19,6 +19,19 @@
     - backup
     - restore
 
+- name: "Display backup operation details"
+  ansible.builtin.debug:
+    msg: |-
+      Backing up certificate secrets from cluster
+      Target cluster: {{ secret_management_cluster.api_host }}
+      Secrets to backup:
+      {% for secret in secret_management_secrets %}
+      - {{ secret.name }} (namespace: {{ secret.namespace }})
+      {% endfor %}
+  when: secret_management_operation in ['backup', 'both']
+  tags:
+    - backup
+
 - name: "Backup secrets to local files"
   kubernetes.core.k8s_info:
     host: "{{ secret_management_cluster.api_host }}"
@@ -56,6 +69,18 @@
   when: 
     - _secret_management_backups.results[item.0].resources | length > 0
     - secret_management_operation in ['backup', 'both']
+  register: _secret_management_backup_files
+  tags:
+    - backup
+
+- name: "Show backup progress for each secret"
+  ansible.builtin.debug:
+    msg: "[OK] Backed up secret: {{ item.item.1.name }} ({{ item.item.1.namespace }})"
+  loop: "{{ _secret_management_backup_files.results | default([]) }}"
+  when: 
+    - secret_management_operation in ['backup', 'both']
+    - _secret_management_backup_files is defined
+    - not item.failed | default(false)
   tags:
     - backup
 
@@ -64,6 +89,21 @@
     paths: "{{ secret_management_backup_dir }}"
     patterns: '*.yaml'
   register: _secret_management_found_files
+  tags:
+    - restore
+
+- name: "Display restore operation details"
+  ansible.builtin.debug:
+    msg: |-
+      Restoring certificate secrets to cluster
+      Backup directory: {{ secret_management_backup_dir }}
+      Found {{ _secret_management_found_files.files | length }} backup files:
+      {% for file in _secret_management_found_files.files %}
+      - {{ file.path | basename }}
+      {% endfor %}
+  when: 
+    - secret_management_operation in ['restore', 'both']
+    - _secret_management_found_files.files | length > 0
   tags:
     - restore
 
@@ -90,13 +130,38 @@
     src: "{{ item.path }}"
   loop: "{{ _secret_management_found_files.files }}"
   when: secret_management_operation in ['restore', 'both']
+  register: _secret_management_restore_results
+  tags:
+    - restore
+
+- name: "Show restore progress for each secret"
+  ansible.builtin.debug:
+    msg: "[OK] Restored secret: {{ item.item.path | basename }}"
+  loop: "{{ _secret_management_restore_results.results | default([]) }}"
+  when: 
+    - secret_management_operation in ['restore', 'both']
+    - _secret_management_restore_results is defined
+    - not item.failed | default(false)
   tags:
     - restore
 
 - name: "Show operation summary"
   ansible.builtin.debug:
-    msg: >-
-      {{ secret_management_operation | title }} operation completed for 
-      {{ secret_management_secrets | length }} secrets in 
-      {{ secret_management_backup_dir }}
+    msg: |-
+      {{ secret_management_operation | title }} operation completed successfully!
+      Summary:
+        {% if secret_management_operation in ['backup', 'both'] %}
+        - Secrets backed up: {{ _secret_management_backup_files.results | default([]) | length }}
+        {% endif %}
+        {% if secret_management_operation in ['restore', 'both'] %}
+        - Secrets restored: {{ _secret_management_restore_results.results | default([]) | length }}
+        {% endif %}
+        - Backup directory: {{ secret_management_backup_dir }}
+        - Target cluster: {{ secret_management_cluster.api_host }}
+      {% if secret_management_operation in ['backup', 'both'] %}
+      Certificate secrets are now safely backed up
+      {% endif %}
+      {% if secret_management_operation in ['restore', 'both'] %}
+      Certificate secrets are now available in the cluster
+      {% endif %}
   when: secret_management_verbose | default(false)
