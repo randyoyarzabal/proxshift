@@ -1,7 +1,7 @@
 # GitHub Pages Configuration for ProxShift
 # Theme: Midnight (GitHub supported theme)
 
-title: ProxShift Documentation
+title: ProxShift
 description: OpenShift clusters on Proxmox made simple
 url: https://randyoyarzabal.github.io
 baseurl: /proxshift

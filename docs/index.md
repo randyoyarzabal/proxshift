@@ -1,4 +1,4 @@
-# ProxShift Documentation
+# ProxShift
 
 Welcome to **ProxShift** - OpenShift clusters on Proxmox made simple.
 
