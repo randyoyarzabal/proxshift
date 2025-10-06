@@ -10,8 +10,8 @@ baseurl: /proxshift
 theme: jekyll-theme-midnight
 
 # Site settings
-logo: /proxshift/assets/images/logo.png
-favicon: /proxshift/assets/images/favicon.ico
+# logo: /proxshift/assets/images/logo.png
+# favicon: /proxshift/assets/images/favicon.ico
 
 # Navigation
 nav_external_links:
