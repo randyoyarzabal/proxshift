@@ -88,7 +88,7 @@ ps.acm_import <cluster_name> [--dry-run]
 ```
 
 ### ps.backup_certs
-Backup certificate secrets from EXISTING ocp-sno1 cluster.
+Backup certificate secrets from EXISTING cluster.
 
 ```bash
 ps.backup_certs [--dry-run]
@@ -101,7 +101,7 @@ Backs up:
 Files saved to: `$gitops_root/backups/` using format: `{namespace}-{secret-name}.yaml`
 
 ### ps.restore_certs
-Restore certificate secrets to REBUILT ocp-sno1 cluster.
+Restore certificate secrets to REBUILT cluster.
 
 ```bash
 ps.restore_certs [--dry-run]
@@ -123,7 +123,7 @@ ps.gitops <cluster_name> [--dry-run]
 ```
 
 ### ps.gitops_loop
-Run GitOps reconciliation loop (ocp-sno1 only).
+Run GitOps reconciliation loop for specified cluster.
 
 ```bash
 ps.gitops_loop [--dry-run]
@@ -182,31 +182,31 @@ ps.install_watch <cluster_name>
 ### Complete Cluster Deployment
 ```bash
 # Preview the full deployment
-ps.provision ocp-sno3 --dry-run
+ps.provision my-cluster --dry-run
 
 # Execute the deployment
-ps.provision ocp-sno3
+ps.provision my-cluster
 ```
 
 ### Manifest Generation Only
 ```bash
 # Generate manifests for customization
-ps.generate_manifests ocp-sno3
+ps.generate_manifests my-cluster
 
 # Review generated files
-ls ocp_install/ocp-sno3/
+ls ocp_install/my-cluster/
 ```
 
 ### Blank Cluster (No GitOps/ACM)
 ```bash
 # Deploy minimal cluster
-ps.force_blank ocp-sno3
+ps.force_blank my-cluster
 ```
 
 ### Post-Installation Tasks
 ```bash
 # Apply storage labels, backup certs, configure GitOps
-ps.post ocp-sno3
+ps.post my-cluster
 ```
 
 ## Dry Run Mode
@@ -214,10 +214,10 @@ ps.post ocp-sno3
 All functions support `--dry-run` mode to preview commands:
 
 ```bash
-ps.provision ocp-sno3 --dry-run
+ps.provision my-cluster --dry-run
 # Output:
 # 🧪 DRY RUN - Command that would be executed:
-#    ansible-playbook site.yaml -e cluster_name=ocp-sno3 -e force_install=true --skip-tags=backup,restore
+#    ansible-playbook site.yaml -e cluster_name=my-cluster -e force_install=true --skip-tags=backup,restore
 ```
 
 ## Migration from ocp.* Functions

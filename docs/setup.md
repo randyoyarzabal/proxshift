@@ -398,10 +398,10 @@ source proxshift.sh
 ps.clusters
 
 # Test dry run
-ps.provision ocp-sno1 --dry-run
+ps.provision my-sno-cluster --dry-run
 
 # Generate templates only
-ps.generate_manifests ocp-sno1
+ps.generate_manifests my-sno-cluster
 ```
 
 ### Validate Prerequisites
@@ -432,20 +432,20 @@ cd /path/to/proxshift
 source proxshift.sh
 
 # Preview before provisioning
-ps.provision ocp-sno1 --dry-run
+ps.provision my-sno-cluster --dry-run
 
 # Provision the cluster
-ps.provision ocp-sno1
+ps.provision my-sno-cluster
 
 # Monitor progress
-tail -f ocp_install/ocp-sno1/.openshift_install.log
+tail -f ocp_install/my-sno-cluster/.openshift_install.log
 ```
 
 ### Post-Installation
 
 ```bash
 # Check cluster status
-export KUBECONFIG=$PROXSHIFT_ROOT/ocp_install/ocp-sno1/auth/kubeconfig
+export KUBECONFIG=$PROXSHIFT_ROOT/ocp_install/my-sno-cluster/auth/kubeconfig
 oc get nodes
 oc get clusterversion
 
@@ -453,7 +453,7 @@ oc get clusterversion
 oc whoami --show-console
 
 # Get kubeadmin password
-cat ocp_install/ocp-sno1/auth/kubeadmin-password
+cat ocp_install/my-sno-cluster/auth/kubeadmin-password
 ```
 
 ## Troubleshooting

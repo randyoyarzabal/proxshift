@@ -79,31 +79,31 @@ ProxShift has been restructured with modular tasks for better granular control o
 ```bash
 # Using ps.* functions
 source proxshift.sh
-ps.generate_manifests ocp-sno3
+ps.generate_manifests my-cluster
 
 # Using ansible directly
-ansible-playbook site.yaml -e cluster_name=ocp-sno3 --tags=manifests
+ansible-playbook site.yaml -e cluster_name=my-cluster --tags=manifests
 ```
 
 ### Create ISO Only (manifests must exist)
 
 ```bash
 # Using ansible directly  
-ansible-playbook site.yaml -e cluster_name=ocp-sno3 --tags=create_iso
+ansible-playbook site.yaml -e cluster_name=my-cluster --tags=create_iso
 ```
 
 ### Installation Only (VMs already running)
 
 ```bash
 # Wait for installation + store credentials + login
-ansible-playbook site.yaml -e cluster_name=ocp-sno3 --tags=install,vault,cluster_login
+ansible-playbook site.yaml -e cluster_name=my-cluster --tags=install,vault,cluster_login
 ```
 
 ### Store Credentials Only
 
 ```bash
 # Store existing credentials in Vault
-ansible-playbook site.yaml -e cluster_name=ocp-sno3 --tags=vault
+ansible-playbook site.yaml -e cluster_name=my-cluster --tags=vault
 ```
 
 ### Full Workflow (traditional)
@@ -111,29 +111,29 @@ ansible-playbook site.yaml -e cluster_name=ocp-sno3 --tags=vault
 ```bash
 # Using ps.* functions
 source proxshift.sh
-ps.provision ocp-sno3
+ps.provision my-cluster
 
 # Using ansible directly
-ansible-playbook site.yaml -e cluster_name=ocp-sno3
+ansible-playbook site.yaml -e cluster_name=my-cluster
 ```
 
 ### Custom Workflow
 
 ```bash
 # 1. Generate manifests
-ansible-playbook site.yaml -e cluster_name=ocp-sno3 --tags=manifests
+ansible-playbook site.yaml -e cluster_name=my-cluster --tags=manifests
 
 # 2. Customize manifests manually
-# Edit files in ocp_install/ocp-sno3/
+# Edit files in ocp_install/my-cluster/
 
 # 3. Create ISO with customized manifests  
-ansible-playbook site.yaml -e cluster_name=ocp-sno3 --tags=create_iso
+ansible-playbook site.yaml -e cluster_name=my-cluster --tags=create_iso
 
 # 4. Continue with VM provisioning
-ansible-playbook site.yaml -e cluster_name=ocp-sno3 --tags=vm_create,vm_start
+ansible-playbook site.yaml -e cluster_name=my-cluster --tags=vm_create,vm_start
 
 # 5. Wait for installation
-ansible-playbook site.yaml -e cluster_name=ocp-sno3 --tags=install,vault,cluster_login
+ansible-playbook site.yaml -e cluster_name=my-cluster --tags=install,vault,cluster_login
 ```
 
 ## Reusable Cluster Login
@@ -272,7 +272,7 @@ fatal: [localhost]: FAILED! =>
     ✗ Installation timed out after 3600 seconds.
     
     Troubleshooting:
-      - Check logs in: ocp_install/ocp-sno3
+      - Check logs in: ocp_install/my-cluster
       - Review agent.x86_64.iso boot process
       - Verify network connectivity and DNS
       - Check Proxmox VM console for errors
@@ -283,7 +283,7 @@ fatal: [localhost]: FAILED! =>
 ```
 TASK [Verify cluster login success] ***
   msg: |
-    ✗ Login failed for cluster: ocp-sno3
+    ✗ Login failed for cluster: my-cluster
     Check cluster status and credentials
 ```
 

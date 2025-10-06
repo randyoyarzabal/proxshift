@@ -131,13 +131,13 @@ source proxshift.sh
 ps.clusters
 
 # Provision a cluster
-ps.provision ocp-sno1
+ps.provision my-cluster
 
 # Generate manifests only
-ps.generate_manifests ocp-sno1
+ps.generate_manifests my-cluster
 
 # Create ISO only
-ansible-playbook site.yaml -e cluster_name=ocp-sno1 --tags=create_iso
+ansible-playbook site.yaml -e cluster_name=my-cluster --tags=create_iso
 ```
 
 ### Ending a Session

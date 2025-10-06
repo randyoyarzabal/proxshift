@@ -14,7 +14,7 @@ echo "your-secure-password" > config/.vault_pass
 ansible-vault encrypt config/vault-credentials.yml --vault-password-file config/.vault_pass
 
 # 3. Run ProxShift - automatic decryption!
-ocp.provision ocp-sno1
+ocp.provision my-cluster
 ```
 
 **Result**: ✓ Seamless automatic decryption
@@ -24,7 +24,7 @@ ocp.provision ocp-sno1
 If `config/.vault_pass` is missing:
 
 ```bash
-ocp.provision ocp-sno1
+ocp.provision my-cluster
 ```
 
 **Output**:

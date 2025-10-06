@@ -47,34 +47,36 @@ New to ProxShift? Start here:
 ```bash
 cd /path/to/proxshift
 source proxshift.sh  # Auto-activates virtual environment
-ps.provision ocp-sno1
+ps.provision my-sno-cluster
 ```
 
 ### Compact Cluster (3 masters)
 
 ```bash
-ps.provision ocp3
+ps.provision my-compact-cluster
 ```
 
 ### Full Production Cluster (3 masters + 3 workers)
 
 ```bash
-ps.provision ocp
+ps.provision my-production-cluster
 ```
 
 ### Preview Templates Only
 
 ```bash
-ps.generate_manifests ocp-sno1 --dry-run
+ps.generate_manifests my-sno-cluster --dry-run
 ```
 
-## Cluster Types
+## Supported Cluster Types
 
-| Command | Type | Nodes | Use Case |
-|---------|------|--------|----------|
-| `ocp-sno1` | **SNO** | 1 | Edge, testing, dev |
-| `ocp3` | **Compact** | 3 | Small production |
-| `ocp` | **Standard** | 6 | Full production |
+ProxShift supports various OpenShift cluster configurations:
+
+- **Single Node OpenShift (SNO)** - Single node clusters for edge, development, and testing
+- **Compact Clusters** - Multi-master clusters for small production environments  
+- **Standard Clusters** - Full production clusters with masters and workers
+
+Each cluster type can be customized in your `inventory/clusters.yml` configuration file.
 
 ## Common Operations
 
@@ -86,15 +88,15 @@ source proxshift.sh
 ps.clusters
 
 # Start/stop VMs
-ps.start ocp-sno1
-ps.deprovision ocp-sno1
+ps.start my-sno-cluster
+ps.deprovision my-sno-cluster
 
 # Generate templates only
-ps.generate_manifests ocp-sno1
+ps.generate_manifests my-sno-cluster
 
 # Full provisioning with preview
-ps.provision ocp-sno1 --dry-run
-ps.provision ocp-sno1
+ps.provision my-sno-cluster --dry-run
+ps.provision my-sno-cluster
 ```
 
 ## Prerequisites

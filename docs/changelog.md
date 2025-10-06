@@ -23,13 +23,13 @@
 **Before:**
 ```bash
 source tools/ocp_pm.sh
-ocp.provision ocp-sno3
+ocp.provision my-cluster
 ```
 
 **After:**
 ```bash
 source proxshift.sh
-ps.provision ocp-sno3
+ps.provision my-cluster
 ```
 
 #### 📚 **Documentation Updates**
@@ -58,11 +58,11 @@ ps.provision ocp-sno3
 2. **Update function calls**:
    ```bash
    # Old
-   ocp.provision ocp-sno3
+   ocp.provision my-cluster
    ocp.list_clusters
    
    # New
-   ps.provision ocp-sno3  
+   ps.provision my-cluster  
    ps.clusters
    ```
 
