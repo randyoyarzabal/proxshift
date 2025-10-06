@@ -1,39 +1,43 @@
-# GitHub Pages configuration for ProxShift documentation
+# GitHub Pages Configuration for ProxShift
+# Theme: Midnight (GitHub supported theme)
+
 title: ProxShift Documentation
 description: OpenShift clusters on Proxmox made simple
+url: https://randyoyarzabal.github.io
+baseurl: /proxshift
 
-# Theme - Using midnight theme to differentiate from Chief project
-remote_theme: pages-themes/midnight@v0.2.0
-plugins:
-  - jekyll-remote-theme
-  - jekyll-feed
-  - jekyll-sitemap
+# Theme configuration
+theme: jekyll-theme-midnight
+
+# Site settings
+logo: /proxshift/assets/images/logo.png
+favicon: /proxshift/assets/images/favicon.ico
 
 # Navigation
-header_pages:
-  - setup.md
-  - environment.md
-  - template-generation.md
-  - architecture.md
-  - welcome.md
+nav_external_links:
+  - title: GitHub Repository
+    url: https://github.com/randyoyarzabal/proxshift
 
-# Markdown settings
-markdown: kramdown
-highlighter: rouge
+# Footer
+footer_content: "ProxShift - Where Proxmox meets OpenShift"
 
-# Code copy widget configuration
-kramdown:
-  input: GFM
-  syntax_highlighter: rouge
-  syntax_highlighter_opts:
-    css_class: 'highlight'
-    span:
-      line_numbers: false
+# Aux links for the upper right navigation
+aux_links:
+  "GitHub Repository":
+    - "//github.com/randyoyarzabal/proxshift"
 
-# Custom styling for code blocks with copy functionality
-sass:
-  style: compressed
+# Plugins
+plugins:
+  - jekyll-feed
+  - jekyll-sitemap
+  - jekyll-seo-tag
 
 # Exclude from processing
 exclude:
-  - readme.md
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor/bundle/
+  - vendor/cache/
+  - vendor/gems/
+  - vendor/ruby/

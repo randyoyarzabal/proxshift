@@ -1,0 +1,58 @@
+---
+layout: default
+title: ProxShift Documentation
+nav_order: 1
+---
+
+# ProxShift Documentation
+
+Welcome to the complete ProxShift documentation. This guide covers everything you need to know to effectively deploy OpenShift clusters on Proxmox.
+
+## Quick Start
+
+Deploy OpenShift clusters on Proxmox in just 3 steps:
+
+1. **Clone & Setup** - Clone the repository and auto-setup environment
+2. **Configure Environment** - Copy configuration templates and customize
+3. **Deploy Cluster** - Deploy single-node or multi-node clusters
+
+[Get Started →](prerequisites.md)
+
+## What is ProxShift?
+
+ProxShift is a powerful automation tool that provides:
+
+- **Deploy in Minutes** - 3-step setup process
+- **Auto-Setup Environment** - `ps.activate` handles everything automatically
+- **Zero Package Management** - No sudo required, uses user-space mounts
+- **Secure by Default** - All credential operations use `no_log: true`
+- **Inventory-Driven** - Define all clusters in `inventory/clusters.yml`
+- **Universal Templates** - No per-cluster files to maintain
+- **Auto-Detection** - SNO vs multi-node, IPs, roles, protocol detection
+- **Portable** - Works from any directory with consistent setup
+
+## Documentation
+
+### Getting Started
+- [Prerequisites](prerequisites.md) - System requirements and setup
+- [Setup Guide](setup.md) - Complete installation and configuration
+- [Environment Guide](environment.md) - Virtual environments and shell integration
+
+### Advanced Usage
+- [Architecture](architecture.md) - How ProxShift works internally
+- [Function Reference](FUNCTION_REFERENCE.md) - Complete command reference
+
+### Troubleshooting
+- [Troubleshooting](troubleshooting.md) - Common issues and solutions
+
+## Getting Help
+
+If you can't find what you're looking for in this documentation:
+
+1. Check the [Troubleshooting](troubleshooting.md) guide for common issues
+2. Review the [Function Reference](FUNCTION_REFERENCE.md) for command details
+3. Open an issue on [GitHub](https://github.com/randyoyarzabal/proxshift) for bugs or feature requests
+
+---
+
+**ProxShift** - Where Proxmox meets OpenShift
