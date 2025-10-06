@@ -4,7 +4,7 @@
 
 ProxShift provides automated certificate backup and restore functionality for OpenShift clusters, specifically designed for the `ocp-sno1` ACM hub cluster which hosts critical certificate secrets.
 
-## 🎯 **Key Architecture**
+## **Key Architecture**
 
 ### **Backup Operations (Standalone)**
 - **Purpose**: Backup certificates from an EXISTING, running ACM cluster
@@ -31,9 +31,10 @@ ProxShift provides automated certificate backup and restore functionality for Op
 - **Granular Control**: Run backup and restore independently
 - **Verbose Mode**: Detailed operation logging
 
-## 🎯 **Quick Usage**
+## **Quick Usage**
 
 ### **Backup Certificate Secrets (From Existing Cluster)**
+
 ```bash
 # Load ProxShift functions
 source proxshift.sh
@@ -45,9 +46,10 @@ ps.backup_certs --dry-run
 ps.backup_certs
 ```
 
-**⚠️ Important**: The cluster `ocp-sno1` must be running and accessible!
+**⚠ Important**: The cluster `ocp-sno1` must be running and accessible!
 
 ### **Restore Certificate Secrets (To Rebuilt Cluster)**
+
 ```bash
 # Restore certificates to REBUILT ocp-sno1 (dry-run)
 ps.restore_certs --dry-run
@@ -56,11 +58,12 @@ ps.restore_certs --dry-run
 ps.restore_certs
 ```
 
-**⚠️ Important**: Use this ONLY when rebuilding the ACM hub cluster!
+**⚠ Important**: Use this ONLY when rebuilding the ACM hub cluster!
 
-## 📋 **Configuration**
+## **Configuration**
 
 ### **Default Certificate Secrets** (defined in `config/site-config.yaml`)
+
 ```yaml
 backup_secrets:
   - name: secret-homelab-ca-tls
@@ -72,6 +75,7 @@ backup_dir: "{{ gitops_root }}/backups"
 ```
 
 ### **Feature Flags** (in `site.yaml`)
+
 ```yaml
 backup_operation: false      # Set to true to backup certificate secrets
 restore_operation: false     # Set to true to restore certificate secrets
@@ -79,9 +83,10 @@ backup_verbose: false        # Enable verbose output for backup/restore operatio
 enable_backup_restore: true  # Enable certificate backup/restore functionality
 ```
 
-## 🛠️ **Manual Ansible Usage**
+## **Manual Ansible Usage**
 
 ### **Backup Only (Standalone Operation)**
+
 ```bash
 ansible-playbook site.yaml \
   -e cluster_name=ocp-sno1 \
@@ -92,6 +97,7 @@ ansible-playbook site.yaml \
 **Note**: Uses `cert_backup` tag - does NOT run any post-install tasks!
 
 ### **Restore Only (During Cluster Rebuild)**
+
 ```bash
 ansible-playbook site.yaml \
   -e cluster_name=ocp-sno1 \
@@ -110,7 +116,7 @@ ansible-playbook site.yaml \
   --tags=cert_backup
 ```
 
-## 🎛️ **Advanced Configuration**
+## **Advanced Configuration**
 
 ### **Custom Backup Directory**
 ```bash
@@ -146,7 +152,7 @@ The backup directory structure follows this pattern:
     └── cluster-info.yaml
 ```
 
-## 🔍 **Workflow Details**
+## **Workflow Details**
 
 ### **Backup Operation**
 1. **Authentication**: Login to `ocp-sno1` using `cluster_login.yml`
@@ -162,7 +168,7 @@ The backup directory structure follows this pattern:
 4. **Verification**: Confirm secrets were restored successfully
 5. **Status**: Report restoration results
 
-## ⚙️ **Integration with ProxShift**
+## **Integration with ProxShift**
 
 ### **Role Integration**
 - Uses `proxshift.openshift.secret_management` role
@@ -179,13 +185,13 @@ The backup directory structure follows this pattern:
 - `restore`: Certificate restore operations  
 - `post`: Post-installation tasks (includes backup/restore)
 
-## 🎯 **Target Clusters**
+## **Target Clusters**
 
 Currently configured for:
 - **ocp-sno1**: Primary certificate management cluster
 - Easily extendable to other clusters by modifying the cluster condition
 
-## 🔧 **Troubleshooting**
+## **Troubleshooting**
 
 ### **Missing Required Arguments Error**
 ```
@@ -196,7 +202,7 @@ missing required arguments: secret_management_backup_dir, secret_management_clus
 
 ### **Authentication Failed**
 ```
-❌ Login failed for cluster: ocp-sno1
+✗ Login failed for cluster: ocp-sno1
 ```
 
 **Solutions**:
@@ -242,7 +248,7 @@ Secret 'secret-name' not found in namespace 'namespace'
 - Set up alerts for failed backup operations
 - Track backup file sizes and timestamps
 
-## 🚀 **Future Enhancements**
+## **Future Enhancements**
 
 ### **Multi-Cluster Support**
 - Extend to support additional clusters beyond `ocp-sno1`

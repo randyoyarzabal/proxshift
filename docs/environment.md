@@ -39,16 +39,16 @@ ProxShift includes automatic environment setup:
 source proxshift.sh
 
 # Output:
-# 🔧 Activating ProxShift virtual environment...
-# ✅ Virtual environment activated: Python 3.13.7
+# Activating ProxShift virtual environment...
+# ✓ Virtual environment activated: Python 3.13.7
 ```
 
 **What happens automatically:**
-1. ✅ Detects `.venv` directory
-2. ✅ Activates virtual environment  
-3. ✅ Verifies Ansible is available
-4. ✅ Loads all ProxShift functions
-5. ✅ Shows helpful error messages if issues found
+1. ✓ Detects `.venv` directory
+2. ✓ Activates virtual environment  
+3. ✓ Verifies Ansible is available
+4. ✓ Loads all ProxShift functions
+5. ✓ Shows helpful error messages if issues found
 
 ## Environment Variables
 
@@ -278,4 +278,4 @@ ansible-galaxy collection install *.tar.gz --force
 
 ---
 
-**ProxShift** - Seamless OpenShift on Proxmox ⚡
+**ProxShift** - Seamless OpenShift on Proxmox

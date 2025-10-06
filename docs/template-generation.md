@@ -27,12 +27,12 @@ ocp.generate_manifests ocp-sno1   # SNO cluster
 
 ### What It Does
 
-1. ✅ **Validates** cluster name exists in inventory
-2. ✅ **Retrieves** secrets from HashiCorp Vault 
-3. ✅ **Generates** `install-config.yaml` from universal template
-4. ✅ **Generates** `agent-config.yaml` from universal template
-5. ✅ **Creates** backup copies (`.bak` files)
-6. ❌ **Skips** ISO creation, VM provisioning, and post-install tasks
+1. ✓ **Validates** cluster name exists in inventory
+2. ✓ **Retrieves** secrets from HashiCorp Vault 
+3. ✓ **Generates** `install-config.yaml` from universal template
+4. ✓ **Generates** `agent-config.yaml` from universal template
+5. ✓ **Creates** backup copies (`.bak` files)
+6. ✗ **Skips** ISO creation, VM provisioning, and post-install tasks
 
 ### Generated Files
 
@@ -55,14 +55,14 @@ $ ocp.generate_manifests ocp-sno3
 
 [Ansible playbook runs...]
 
-✅ Template generation completed successfully!
+✓ Template generation completed successfully!
 📂 Generated files:
    - ocp_install/ocp-sno3/install-config.yaml
    - ocp_install/ocp-sno3/agent-config.yaml  
    - ocp_install/ocp-sno3/install-config.yaml.bak
    - ocp_install/ocp-sno3/agent-config.yaml.bak
 
-💡 Use 'ocp.provision ocp-sno3' to proceed with full cluster provisioning
+Use 'ocp.provision ocp-sno3' to proceed with full cluster provisioning
 ```
 
 ### Template Validation Workflow
@@ -84,8 +84,8 @@ ocp.provision my-cluster
 
 ### Benefits
 
-- 🚀 **Fast** - No VM operations or ISO creation
-- 🔍 **Safe** - Review before provisioning  
+- **Fast** - No VM operations or ISO creation
+- **Safe** - Review before provisioning  
 - 🧪 **Testing** - Validate template logic
 - 📊 **Comparison** - Easy to diff against previous versions
 - 🐛 **Debugging** - Isolate template issues from infrastructure issues

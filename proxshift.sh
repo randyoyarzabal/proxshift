@@ -36,7 +36,7 @@ function ps.activate() {
     source .venv/bin/activate
     echo "✓ Virtual environment activated: $(python --version)"
   else
-    echo "🔧 Virtual environment not found. Creating new environment..."
+    echo "Virtual environment not found. Creating new environment..."
     
     # Create virtual environment
     if ! python3 -m venv .venv; then
@@ -50,12 +50,12 @@ function ps.activate() {
     echo "✓ Virtual environment created and activated: $(python --version)"
     
     # Upgrade pip
-    echo "🔧 Upgrading pip..."
+    echo "Upgrading pip..."
     pip install --upgrade pip
     
     # Install requirements
     if [[ -f "requirements.txt" ]]; then
-      echo "🔧 Installing Python dependencies..."
+      echo "Installing Python dependencies..."
       if ! pip install -r requirements.txt; then
         echo "✗ Failed to install Python dependencies"
         return 1
@@ -67,7 +67,7 @@ function ps.activate() {
     
     # Install Ansible collections
     if [[ -f "collections/requirements.yml" ]]; then
-      echo "🔧 Installing Ansible collections..."
+      echo "Installing Ansible collections..."
       if ! ansible-galaxy collection install -r collections/requirements.yml; then
         echo "✗ Failed to install Ansible collections"
         return 1

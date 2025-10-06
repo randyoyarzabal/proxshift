@@ -248,12 +248,12 @@ ping cluster-node.example.com
 
 ```bash
 # Don't use system pip
-pip install something     # ❌ Fails on modern systems
+pip install something     # ✗ Fails on modern systems
 
 # Use virtual environment
 python3 -m venv .venv
 source .venv/bin/activate
-pip install something     # ✅ Works in venv
+pip install something     # ✓ Works in venv
 ```
 
 ### Ansible Collection Not Found
@@ -282,15 +282,15 @@ ls -la .tmpmount/         # Should be writable by user
 
 Before running ProxShift, ensure you have:
 
-- ✅ **Python 3.8+** with virtual environment support
-- ✅ **Virtual environment** created and activated
-- ✅ **All Python dependencies** installed via pip
-- ✅ **OpenShift tools** downloaded and in PATH
-- ✅ **System packages** for NFS/SMB mounting
-- ✅ **Proxmox API access** with VM permissions
-- ✅ **Vault access** with KV secrets
-- ✅ **Network connectivity** to all required services
-- ✅ **DNS resolution** for cluster domains
+- ✓ **Python 3.8+** with virtual environment support
+- ✓ **Virtual environment** created and activated
+- ✓ **All Python dependencies** installed via pip
+- ✓ **OpenShift tools** downloaded and in PATH
+- ✓ **System packages** for NFS/SMB mounting
+- ✓ **Proxmox API access** with VM permissions
+- ✓ **Vault access** with KV secrets
+- ✓ **Network connectivity** to all required services
+- ✓ **DNS resolution** for cluster domains
 
 Once all prerequisites are met, proceed to the [Setup Guide](setup.md) for configuration and first cluster deployment.
 

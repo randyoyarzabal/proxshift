@@ -404,4 +404,4 @@ ansible_collections/proxshift/proxmox/roles/custom_proxmox_role/
 
 ---
 
-**ProxShift** - Where Proxmox meets OpenShift ⚡
+**ProxShift** - Where Proxmox meets OpenShift

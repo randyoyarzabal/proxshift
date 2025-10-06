@@ -4,7 +4,7 @@
 
 ### Major Improvements
 
-#### 🚀 **Script Modernization**
+#### **Script Modernization**
 - **BREAKING**: Renamed `tools/ocp_pm.sh` → `proxshift.sh` (moved to project root)
 - **BREAKING**: All functions renamed from `ocp.*` to `ps.*` for modern naming
 - **BREAKING**: Removed `tools/` directory - script now in project root
@@ -19,7 +19,7 @@
 | `ocp.validate_cluster` | `ps.validate_cluster` | Validate cluster exists |
 | `ocp.ansible_*` | `ps.*` | All ansible operations (removed "ansible" prefix) |
 
-#### 🔧 **Usage Changes**
+#### **Usage Changes**
 **Before:**
 ```bash
 source tools/ocp_pm.sh
@@ -38,7 +38,7 @@ ps.provision ocp-sno3
 - Examples updated with new function names
 - Test suite updated and passing
 
-#### ✅ **Benefits**
+#### **Benefits**
 - **Cleaner Interface**: More intuitive `ps.*` naming
 - **Easier Access**: Script in project root (no subdirectory)
 - **Modern Standards**: Follows Ansible best practices (`site.yaml`)

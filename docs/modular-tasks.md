@@ -62,7 +62,7 @@ ProxShift has been restructured with modular tasks for better granular control o
 
 **Tags**: `vault`
 
-#### `tasks/cluster_login.yml` ⭐
+#### `tasks/cluster_login.yml`
 
 **Purpose**: Reusable cluster authentication
 - Can login to any OpenShift cluster (newly provisioned, ACM hub, etc.)
@@ -164,14 +164,14 @@ ansible-playbook site.yaml -e cluster_name=ocp-sno3 --tags=install,vault,cluster
 
 ## Benefits
 
-### 🎯 **Granular Control**
+### **Granular Control**
 
 - Generate manifests without creating ISO
 - Customize manifests before ISO creation
 - Skip steps you don't need
 - Run only installation waiting without full deployment
 
-### 🔧 **Development Workflow**
+### **Development Workflow**
 
 - Test manifest generation independently
 - Iterate on configuration without full deployment
@@ -185,7 +185,7 @@ ansible-playbook site.yaml -e cluster_name=ocp-sno3 --tags=install,vault,cluster
 - Review generated files before proceeding
 - Use custom authentication for cluster access
 
-### ⚡ **Efficiency**
+### **Efficiency**
 
 - Skip expensive operations when not needed
 - Faster iteration during development
@@ -269,9 +269,9 @@ fatal: [localhost]: FAILED! =>
 TASK [Check installation status] ***
 fatal: [localhost]: FAILED! => 
   msg: |
-    ❌ Installation timed out after 3600 seconds.
+    ✗ Installation timed out after 3600 seconds.
     
-    🔍 Troubleshooting:
+    Troubleshooting:
       - Check logs in: ocp_install/ocp-sno3
       - Review agent.x86_64.iso boot process
       - Verify network connectivity and DNS
@@ -283,8 +283,8 @@ fatal: [localhost]: FAILED! =>
 ```
 TASK [Verify cluster login success] ***
   msg: |
-    ❌ Login failed for cluster: ocp-sno3
-    🔍 Check cluster status and credentials
+    ✗ Login failed for cluster: ocp-sno3
+    Check cluster status and credentials
 ```
 
 This provides clear guidance on what steps are needed and how to troubleshoot issues.

@@ -4,7 +4,7 @@
 
 ProxShift provides **flexible vault password handling**:
 
-### ✅ **With Vault Password File (Recommended)**
+### ✓ **With Vault Password File (Recommended)**
 
 ```bash
 # 1. Create your vault password file
@@ -17,9 +17,9 @@ ansible-vault encrypt config/vault-credentials.yml --vault-password-file config/
 ocp.provision ocp-sno1
 ```
 
-**Result**: ✅ Seamless automatic decryption
+**Result**: ✓ Seamless automatic decryption
 
-### ⚠️ **Without Vault Password File**
+### ⚠ **Without Vault Password File**
 
 If `config/.vault_pass` is missing:
 
@@ -29,12 +29,12 @@ ocp.provision ocp-sno1
 
 **Output**:
 ```
-⚠️  Vault password file not found: /path/to/config/.vault_pass
+⚠  Vault password file not found: /path/to/config/.vault_pass
    Ansible will prompt for vault password interactively
 Vault password: [user types password]
 ```
 
-**Result**: ✅ Interactive password prompt
+**Result**: ✓ Interactive password prompt
 
 ## Behavior Summary
 
@@ -55,9 +55,9 @@ ProxShift implements **smart vault detection**:
 
 ## Best Practices
 
-- ✅ **Create** `config/.vault_pass` for automation
-- ✅ **Use strong** random passwords (20+ characters)  
-- ✅ **Keep secure** - never commit vault passwords
-- ✅ **Test both** automated and interactive modes
+- ✓ **Create** `config/.vault_pass` for automation
+- ✓ **Use strong** random passwords (20+ characters)  
+- ✓ **Keep secure** - never commit vault passwords
+- ✓ **Test both** automated and interactive modes
 
 This ensures ProxShift works for both **automated CI/CD** and **interactive development**!
